@@ -1,0 +1,1 @@
+( axes: { "P2": ( pos: Key(Z), neg: Key(X), ), "P1": ( pos: Key(W), neg: Key(S), ), }, actions: { }, )
