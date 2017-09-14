@@ -2,9 +2,11 @@
 
 //#![deny(missing_docs,dead_code)]
 extern crate amethyst;
+extern crate amethyst_input;
 extern crate futures;
 extern crate rayon;
 extern crate time;
+extern crate winit;
 
 use amethyst::assets::{AssetFuture, BoxedErr};
 use amethyst::assets::Loader;
@@ -14,6 +16,7 @@ use amethyst::audio::output::{default_output, Output};
 use amethyst::audio::play::play_once;
 use amethyst::ecs::{Component, Fetch, FetchMut, Join, System, VecStorage, WriteStorage};
 use amethyst::ecs::audio::DjSystem;
+use amethyst::ecs::Entities;
 use amethyst::ecs::input::{Bindings, InputHandler};
 use amethyst::ecs::rendering::{Factory, MeshComponent, MaterialComponent};
 use amethyst::ecs::transform::{Transform, LocalTransform, Child, Init, TransformSystem};
@@ -25,11 +28,14 @@ use futures::{Future, IntoFuture};
 
 use std::ops::{Add, Sub};
 use std::time::Instant;
-use time::PreciseTime;
 use std::fs::File;
 use std::io::prelude::*;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+
+use amethyst_input::*;
+use winit::VirtualKeyCode;
+
 
 
 #[derive(Clone)]
@@ -59,11 +65,25 @@ struct HitObjectQueue {
 }
 impl HitObjectQueue {
     fn new() -> HitObjectQueue {
-        return HitObjectQueue { queue: VecDeque::new() };
+        HitObjectQueue { queue: VecDeque::new() }
     }
 }
 impl Component for HitObjectQueue {
     type Storage = VecStorage<HitObjectQueue>;
+}
+
+struct HitOffsets{
+    pub offsets: Vec<Option<f32>>,
+}
+impl HitOffsets{
+    fn new()->HitOffsets{
+        HitOffsets{
+            offsets: Vec::new(),
+        }
+    }
+}
+impl Component for HitOffsets{
+    type Storage = VecStorage<HitOffsets>;
 }
 
 struct Sounds {
@@ -103,10 +123,10 @@ impl State for Game {
 
         let have_output = engine.world.read_resource::<Option<Output>>().is_some();
 
-        let (red_hit_mesh, red_hit_mtl) =
-            gen_complete_rect([0.005, 0.15], [1.0, 0., 0., 1.0], engine);
-        let (blue_hit_mesh, blue_hit_mtl) =
-            gen_complete_rect([0.005, 0.15], [0., 0., 1.0, 1.0], engine);
+        let (big_hit_mesh, red_hit_mtl) =
+            gen_complete_rect([0.008, 0.15], [1.0, 0., 0., 1.0], engine);
+        let (small_hit_mesh, blue_hit_mtl) =
+            gen_complete_rect([0.005, 0.20], [0., 0., 1.0, 1.0], engine);
         let (hit_judgement_mesh, hit_judgement_mtl) =
             gen_complete_rect([0.001, 0.25], [0., 1., 0., 1.], engine);
 
@@ -142,14 +162,16 @@ impl State for Game {
 
         world.add_resource(input);
         world.add_resource(Time::default());
-        world.add_resource(HitObjectQueue::new());
+        world.add_resource(HitOffsets::new());
 
 
         world.register::<Child>();
         world.register::<Init>();
         world.register::<LocalTransform>();
-
+        let mut hitqueue = HitObjectQueue::new();
         for hit in &beatmap.objects {
+            hitqueue.queue.push_back(hit.clone());
+
             let mut tr = LocalTransform::default();
             tr.translation = [0.0, 0.5, 0.0];
             let mtl = if hit.red {
@@ -157,15 +179,21 @@ impl State for Game {
             } else {
                 blue_hit_mtl.clone()
             };
+            let mesh = if hit.big{
+                big_hit_mesh.clone()
+            }else{
+                small_hit_mesh.clone()
+            };
             world
                 .create_entity()
-                .with(red_hit_mesh.clone())
+                .with(mesh)
                 .with(mtl)
                 .with(hit.clone())
                 .with(tr)
                 .with(Transform::default())
                 .build();
         }
+        world.add_resource(hitqueue);
 
         //add hit judgement On Time
         // 0.5 screen/sec, 25 ms = 0.0125 screens
@@ -176,7 +204,8 @@ impl State for Game {
         //then count the bars.
 
         //Jojolepro's result -> 13 bars = -300 ms.  My normal offset on osu is -25 ms
-        for i in 1..20 {
+        //With --release -> -75 to -125 ms
+        /*for i in 1..20 {
             let mut tr = LocalTransform::default();
             tr.translation = [0.3 - (0.0125 as f32 * i as f32), 0.5, 0.0];
             world
@@ -186,9 +215,40 @@ impl State for Game {
                 .with(tr)
                 .with(Transform::default())
                 .build();
-        }
+        }*/
+
+        let mut tr = LocalTransform::default();
+            tr.translation = [0.3, 0.5, 0.0];
+            world
+                .create_entity()
+                .with(hit_judgement_mesh.clone())
+                .with(hit_judgement_mtl.clone())
+                .with(tr)
+                .with(Transform::default())
+                .build();
+
+
+        let mut tr = LocalTransform::default();
+            tr.translation = [0.3 - (0.0125 as f32 * 2 as f32), 0.5, 0.0];
+            world
+                .create_entity()
+                .with(hit_judgement_mesh.clone())
+                .with(hit_judgement_mtl.clone())
+                .with(tr)
+                .with(Transform::default())
+                .build();
 
         world.add_resource(beatmap);
+
+        let mut tr = LocalTransform::default();
+            tr.translation = [0.3 - (0.0125 as f32 * -2 as f32), 0.5, 0.0];
+            world
+                .create_entity()
+                .with(hit_judgement_mesh.clone())
+                .with(hit_judgement_mtl.clone())
+                .with(tr)
+                .with(Transform::default())
+                .build();
     }
 
     fn handle_event(&mut self, _: &mut Engine, event: Event) -> Trans {
@@ -211,7 +271,9 @@ impl State for Game {
 struct GameSystem;
 
 impl<'a> System<'a> for GameSystem {
-    type SystemData = (WriteStorage<'a, HitObject>,
+    type SystemData = (
+     Entities<'a>,
+     WriteStorage<'a, HitObject>,
      WriteStorage<'a, LocalTransform>,
      Fetch<'a, Camera>,
      Fetch<'a, Time>,
@@ -220,10 +282,14 @@ impl<'a> System<'a> for GameSystem {
      Fetch<'a, Option<Output>>,
      Fetch<'a, BeatMap>,
      Fetch<'a, Stopwatch>,
-     FetchMut<'a, HitObjectQueue>);
+     FetchMut<'a, HitObjectQueue>,
+     FetchMut<'a, HitOffsets>,
+     );
     fn run(
         &mut self,
-        (mut hitobjects,
+        (
+         entities,
+         mut hitobjects,
          mut transforms,
          cam,
          time,
@@ -232,18 +298,72 @@ impl<'a> System<'a> for GameSystem {
          audio_output,
          beatmap,
          stopwatch,
-         mut hitqueue):
+         mut hitqueue,
+         mut hitoffsets,
+         ):
          Self::SystemData,
-){
+    ){
         let curTime = stopwatch.elapsed();
         let curTime = curTime.as_secs() as f32 + (curTime.subsec_nanos() as f32 / 1_000_000_000.0);
-        println!("CurTime: {}", curTime);
-        for (obj, tr) in (&mut hitobjects, &mut transforms).join() {
-            tr.translation[0] = (obj.time - curTime) * 0.50 + 0.3; //TEMPORARY. TO TEST HIT JUDGEMENT
+
+        let r1 = pressed(VirtualKeyCode::Z,&*input);
+        let r2 = pressed(VirtualKeyCode::X,&*input);
+        let b1 = pressed(VirtualKeyCode::N,&*input);
+        let b2 = pressed(VirtualKeyCode::M,&*input);
+        //println!("{} {} {} {}",r1,r2,b1,b2);
+
+        let mut dropped_offsets = Vec::new();
+        while let Some(head) = (&mut hitqueue.queue).pop_front(){
+            if head.time + beatmap.maxhitoffset < curTime as f32{
+                hitoffsets.offsets.push(None);
+                dropped_offsets.push(head.time);
+                //println!("Dropped object");
+            }else{
+                hitqueue.queue.push_front(head);
+                break;
+            }
+        }
+
+        if r1 || r2 || b1 || b2 {
+            let (red, dual) = getKeyPressType(r1,r2,b1,b2);
+            //Get clickable object
+            if let Some(head) = (&mut hitqueue.queue).pop_front() {
+                if let (Some(offset), clicked) = checkHit(&beatmap,&head, curTime, red, dual) {
+                    if clicked {
+                        hitoffsets.offsets.push(Some(offset));
+                    } else {
+                        hitoffsets.offsets.push(None);
+                    }
+                    dropped_offsets.push(head.time);
+                } else {
+                    //Put back into list if pressed but no hitobject was found
+                    hitqueue.queue.push_front(head);
+                }
+            }
+        }
+
+        //println!("CurTime: {}", curTime);
+        'outer: for (entity,obj, tr) in (&*entities,&mut hitobjects, &mut transforms).join() {
+            //Drop objects that weren't clicked fast enough
+            for dropped_offset in dropped_offsets.iter(){
+                    if *dropped_offset == obj.time{
+                        //Drop visual object
+                        //println!("Dropped entity");
+                        entities.delete(entity);
+                        //continue 'outer;
+                    }
+            }
+
+
+            //Update object position
+            tr.translation[0] = ((obj.time - curTime) * 0.50) + 0.3; //TEMPORARY. TO TEST HIT JUDGEMENT
         }
     }
 }
 
+fn pressed(key:VirtualKeyCode,input:&InputHandler)->bool{
+    input.key_is(key,ButtonState::Pressed(ChangeState::ThisFrame))
+}
 
 fn getKeyPressType(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) {
     let dual = (z && x) || (two && three);
@@ -252,146 +372,26 @@ fn getKeyPressType(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) {
     (red, dual)
 }
 
-/*fn window(){
-    let mut window: PistonWindow = WindowSettings::new("Taiko Copy :D",
-    [800,600]).resizable(true).exit_on_esc(true).build().unwrap();
-
-
-
-
-    for hit in &beatmap.objects{
-        objectsqueue.push_back(hit.clone());
-    }
-    let mut hitoffsets:Vec<Option<f64>> = Vec::new();
-
-
-
-
-    //key,was pressed   if key doesn't exists, key is not pressed
-    let mut keys:HashMap<i32,bool> = HashMap::new();
-
-    while let Some(event) = window.next(){
-        let curTime = startTime.to(PreciseTime::now()).num_milliseconds() as f64 / 1000.0;
-        //println!("Time diff: {}",curTime);
-        match event {
-            Event::Input(input) => {
-                if let Input::Press(Button::Keyboard(but)) = input {
-                    println!("Pressed ");
-                    if keys.get(&but.code()).is_none(){
-                        keys.insert(but.code(),false);
-                    }
-                }
-                if let Input::Release(Button::Keyboard(but)) = input {
-                    println!("Released ");
-                    keys.remove(&but.code());
-                }
-            },
-            Event::Render(render)=>{
-                window.draw_2d(&event,|context,graphics|{
-                    clear([1.0;4],graphics);
-                    for hit in &beatmap.objects{
-                        let color = match hit.red{
-                            true=>[1.0,0.0,0.0,1.0],
-                            false=>[0.0,0.0,1.0,1.0],
-                        };
-                        let (sizex,sizey) = match hit.big{
-                            true =>(16.0,150.0),
-                            false =>(8.0,100.0),
-                        };
-                        rectangle(
-                            color,
-                            [(hit.time as f64 - curTime) * 750.0,50.0,sizex,sizey],
-                            context.transform,
-                            graphics
-                        );
-                    }
-                });
-            },
-            Event::Update(update)=>{
-                //Remove past objects that were not clicked
-
-                //try take first
-                //drop if ...
-                //loop
-                while let Some(head) = (&mut objectsqueue).pop_front(){
-
-                    if head.time + beatmap.maxhitoffset < curTime as f32{
-                        &hitoffsets.push(None);
-                        println!("Dropped object");
-                    }else{
-                        objectsqueue.push_front(head);
-                        break;
-                    }
-                }
-
-
-
-                //add && !waspressed
-
-
-
-
-                let z = keys.get(&Key::Z.code()).is_some();
-                let z = z && !*keys.get(&Key::Z.code()).unwrap();
-                let x = keys.get(&Key::X.code()).is_some();
-                let x = x && !*keys.get(&Key::X.code()).unwrap();
-                let two = keys.get(&Key::NumPad2.code()).is_some();
-                let two = two && !*keys.get(&Key::NumPad2.code()).unwrap();
-                let three = keys.get(&Key::NumPad3.code()).is_some();
-                let three = three && !*keys.get(&Key::NumPad3.code()).unwrap();
-                //println!("NumPad2 pressed: {}",keys.get(&Key::NumPad2.code()).is_some());
-                if z || x || two || three {
-                    let (red, dual) = getKeyPressType(z, x, two, three);
-
-                    //Get clickable object
-                    if let Some(head) = (&mut objectsqueue).pop_front() {
-                        if let (Some(offset), clicked) = checkHit(&beatmap, curTime, red, dual) {
-                            if clicked {
-                                hitoffsets.push(Some(offset));
-                            } else {
-                                hitoffsets.push(None);
-                            }
-                        } else {
-                            //Put back into list if pressed but no hitobject was found
-                            hitoffsets.push(None);
-                        }
-                    }
-                }
-
-
-
-                //not working :(
-                //keys.iter_mut().map(|(k,v)|{(k,true)});
-                for (k,v) in keys.iter_mut(){
-                    *v = true;
-                }
-            }
-            _ =>{},
-        }
-
-    }
-}*/
-
 ///Returns hit offset
-///Found no objects to hit, no offset
-///Found an object to hit, used wrong button
+///Found no objects to hit, no offset  (None,false)
+///Found an object to hit, used wrong button (Some(offset),false)
 ///Found an object to hit, used right button  (Some(offset),true)
-fn checkHit(beatmap: &BeatMap, time: f64, redpressed: bool, dual: bool) -> (Option<f64>, bool) {
-    for hit in &beatmap.objects {
-        if value_near(time, hit.time as f64, 0.2) {
+fn checkHit(beatmap: &BeatMap,hit:&HitObject, time: f32, redpressed: bool, dual: bool) -> (Option<f32>, bool) {
+    //for hit in &beatmap.objects {
+        if value_near(time, hit.time, beatmap.maxhitoffset) {
             if (hit.red && redpressed) || (!hit.red && !redpressed) {
                 if (hit.big && dual) || (!hit.big && !dual) {
-                    println!("GOOD HIT @ {}", time);
-                    return (Some(time - hit.time as f64), true);
+                    println!("GOOD HIT @ {}, hit.time {}", time,hit.time);
+                    return (Some(time - hit.time), true);
                 } else {
-                    println!("Wrong dual >_<");
-                    return (Some(time - hit.time as f64), false);
+                    println!("Wrong dual @ {}, hit.time {}",time,hit.time);
+                    return (Some(time - hit.time), false);
                 }
             }
             println!("Wrong key >_<");
-            return (Some(time - hit.time as f64), false);
+            return (Some(time - hit.time), false);
         }
-    }
+    //}
     return (None, false);
 }
 
