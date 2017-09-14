@@ -124,9 +124,9 @@ impl State for Game {
         let have_output = engine.world.read_resource::<Option<Output>>().is_some();
 
         let (big_hit_mesh, red_hit_mtl) =
-            gen_complete_rect([0.008, 0.15], [1.0, 0., 0., 1.0], engine);
+            gen_complete_rect([0.010, 0.25], [1.0, 0., 0., 1.0], engine);
         let (small_hit_mesh, blue_hit_mtl) =
-            gen_complete_rect([0.005, 0.20], [0., 0., 1.0, 1.0], engine);
+            gen_complete_rect([0.005, 0.15], [0., 0., 1.0, 1.0], engine);
         let (hit_judgement_mesh, hit_judgement_mtl) =
             gen_complete_rect([0.001, 0.25], [0., 1., 0., 1.], engine);
 
