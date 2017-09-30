@@ -3,42 +3,47 @@
 //#![deny(missing_docs,dead_code)]
 extern crate amethyst;
 extern crate futures;
+extern crate imagefmt;
 extern crate rayon;
+extern crate rusttype;
+extern crate specs;
 extern crate time;
 extern crate winit;
-extern crate rusttype;
-extern crate imagefmt;
 
-use amethyst::assets::{AssetFuture, BoxedErr,Format,Loader,Context};
+use amethyst::assets::{AssetFuture, BoxedErr, Context, Format, Loader};
 use amethyst::assets::formats::audio::{OggFormat, WavFormat};
-use amethyst::assets::formats::textures::{ImageData,ImageError,ImageFuture};
-use amethyst::audio::{Dj, AudioContext, Source};
+use amethyst::assets::formats::textures::{ImageData, ImageError, ImageFuture};
+use amethyst::audio::{AudioContext, Dj, Source};
 use amethyst::audio::output::{default_output, Output};
 use amethyst::audio::play::play_once;
 use amethyst::ecs::{Component, Fetch, FetchMut, Join, System, VecStorage, WriteStorage};
 use amethyst::ecs::audio::DjSystem;
 use amethyst::ecs::Entities;
-use amethyst::ecs::input::{Bindings, InputHandler,InputBundle};
-use amethyst::ecs::rendering::{Factory, MeshComponent, MaterialComponent,TextureContext,TextureComponent,RenderBundle};
-use amethyst::ecs::transform::{Transform, LocalTransform, Child, Init, TransformSystem,TransformBundle};
+use amethyst::ecs::input::{Bindings, InputBundle, InputHandler};
+use amethyst::ecs::rendering::{Factory, MaterialComponent, MeshComponent, RenderBundle,
+                               TextureComponent, TextureContext};
+use amethyst::ecs::transform::{Child, Init, LocalTransform, Transform, TransformBundle,
+                               TransformSystem};
 use amethyst::prelude::*;
 use amethyst::renderer::Config as DisplayConfig;
 use amethyst::renderer::prelude::*;
-use amethyst::timing::{Time, Stopwatch};
+use amethyst::timing::{Stopwatch, Time};
 use futures::{Future, IntoFuture};
 use amethyst::assets::formats::textures::PngFormat;
 use amethyst::ecs::ECSBundle;
 use amethyst::ecs::audio::DjBundle;
-
+use specs::{Dispatcher, DispatcherBuilder, Entity};
 use amethyst::Result;
 
 use std::ops::{Add, Sub};
-use std::time::{Instant,Duration};
+use std::time::{Duration, Instant};
 use std::fs::File;
 use std::io::prelude::*;
-use std::collections::{HashMap,VecDeque};
+use std::collections::{HashMap, VecDeque};
 
-use amethyst::input::*;
+//use amethyst::input::*;
+use amethyst::input::InputEvent;
+use amethyst::input::InputEvent::*;
 
 use amethyst::util::time::*;
 use amethyst::ecs::util::resources::*;
@@ -46,11 +51,15 @@ use amethyst::ecs::util::systems::*;
 
 use winit::VirtualKeyCode;
 
-use rusttype::{FontCollection, Scale, point, PositionedGlyph};
+use rusttype::{point, FontCollection, PositionedGlyph, Scale};
 
-use imagefmt::{Image,ColFmt};
+use imagefmt::{ColFmt, Image};
 
 use rayon::ThreadPool;
+
+use std::cmp::Ordering;
+use amethyst::shrev::{EventHandler,EventReadData,ReaderId};
+
 
 
 fn main() {
@@ -60,26 +69,30 @@ fn main() {
     let cfg = DisplayConfig::load(path);
     let assets_dir = format!("{}/resources/assets/", env!("CARGO_MANIFEST_DIR"));
 
-    let input_path = format!(
-            "{}/resources/input.ron",
-            env!("CARGO_MANIFEST_DIR")
-        );
+    let input_path = format!("{}/resources/input.ron", env!("CARGO_MANIFEST_DIR"));
     type DrawFlat = pass::DrawFlat<PosNormTex, MeshComponent, MaterialComponent, Transform>;
-    let mut game = Application::build(Game).unwrap()
-        .with_bundle(FPSCounterBundle::new(20)).expect("Failed to create FPSCounterBundle")
-        .with_bundle(InputBundle::new().with_bindings_from_file(&input_path)).expect("Failed to load input bindings")
-        .with_bundle(GameBundle).expect("Failed to build game system")
-        .with_bundle(TransformBundle::new().with_dep(&["game_system"])).expect("Failed to build transform bundle")
-        .with_bundle(DjBundle::new()).expect("Failed to build dj bundle")
+    let mut game = Application::build(GameState)
+        .unwrap()
+        .with_bundle(FPSCounterBundle::new(20))
+        .expect("Failed to create FPSCounterBundle")
+        .with_bundle(InputBundle::<String,String>::new().with_bindings_from_file(&input_path))
+        .expect("Failed to load input bindings")
+        .with_bundle(GameBundle)
+        .expect("Failed to build game system")
+        .with_bundle(TransformBundle::new().with_dep(&["game_system"]))
+        .expect("Failed to build transform bundle")
+        .with_bundle(DjBundle::new())
+        .expect("Failed to build dj bundle")
         .with_bundle(
             RenderBundle::new(
                 Pipeline::build().with_stage(
                     Stage::with_backbuffer()
-                        .clear_target([255.0,105.0,180.0, 1.0], 1.0)
+                        .clear_target([255.0, 105.0, 180.0, 1.0], 1.0)
                         .with_pass(DrawFlat::new()),
                 ),
             ).with_config(cfg),
-        ).unwrap()
+        )
+        .unwrap()
         .with_store("assets", Directory::new(assets_dir));
     game.build().expect("Failed to build game").run();
 }
@@ -91,6 +104,90 @@ struct Sounds {
     finish: Source,
     whistle: Source,
 }
+
+
+//ParticleSystem
+struct ParticleGenerator{
+    max_particles:u32,
+    life_time:f32,
+    particle_entity:Entity,
+}
+/*
+Features
+Time
+-duration
+-On done, if !looping, add Done component and stop.
+-if destroy_on_done and has component Done, destroy self
+-to reactive, remove Done component
+
+
+Physics
+Shape
+Texture
+
+
+
+duration
+start speed
+start size
+start rotation
+randomize rotation
+start color (gradient)
+gravity modifier
+simulation space (local/global)
+simulation speed
+delta time (scaled/unscaled)
+scaling mode (local/shape,hierarchy)
+play on awake
+emitter velocity (rigidbody/transform)
+max particles
+auto random seed
+stop action(none/disable/destroy
+
+Emission
+rate over time
+distance over time
+Shape
+shape (box,circle,sphere,etc..)
+Emit from (volume/shell/edge)
+
+Velocity over lifetime
+Inherent velocity
+Force over lifetime
+Color over lifetime
+Color by speed
+Size over lifetime
+Size by speed
+Rotation over lifetime
+Rotation by speed
+External forces
+Noise
+Collision
+Triggers
+Sub emitters
+Texture sheet animation
+Lights
+Trails
+Custom data
+Renderer
+
+*/
+
+/*
+Missing concepts
+Area -> mesh
+Area triggers -> tmp Component
+On Collision -> tmp Component
+Shape -> mesh
+Curve/partial functions
+*/
+
+//Particle
+
+
+
+
+
 
 //----------------GAME STRUCTS-----------
 #[derive(Clone)]
@@ -120,29 +217,45 @@ struct HitObjectQueue {
 }
 impl HitObjectQueue {
     fn new() -> HitObjectQueue {
-        HitObjectQueue { queue: VecDeque::new() }
+        HitObjectQueue {
+            queue: VecDeque::new(),
+        }
     }
 }
 impl Component for HitObjectQueue {
     type Storage = VecStorage<HitObjectQueue>;
 }
 
-struct HitOffsets{
+struct HitOffsets {
     pub offsets: Vec<Option<f32>>,
 }
-impl HitOffsets{
-    fn new()->HitOffsets{
-        HitOffsets{
+impl HitOffsets {
+    fn new() -> HitOffsets {
+        HitOffsets {
             offsets: Vec::new(),
         }
     }
 }
-impl Component for HitOffsets{
+impl Component for HitOffsets {
     type Storage = VecStorage<HitOffsets>;
 }
 
-struct UserSettings{
+struct UserSettings {
     pub offset: f32,
+}
+
+struct SystemTracker{
+    pub game:bool,
+}
+impl SystemTracker{
+    pub fn new()->SystemTracker{
+        SystemTracker{
+            game:false,
+        }
+    }
+}
+impl Component for SystemTracker{
+    type Storage = VecStorage<SystemTracker>;
 }
 
 //-------------------------//
@@ -159,33 +272,47 @@ impl<'a, 'b, T> ECSBundle<'a, 'b, T> for GameBundle {
             builder
                 .with_resource(HitOffsets::new())
                 .with_resource(Time::default())
+                //.with_resource(EventHandler::<InputEvent<String>>::new())
                 .register::<HitObject>()
                 .register::<HitObjectQueue>()
                 .register::<BeatMap>()
-                .with(GameSystem, "game_system", &[]),
+                .register::<SystemTracker>()
+                .with(GameSystem{reader_id:None}, "game_system", &[]),
         )
     }
 }
 
 
-struct Game;
+struct GameState;
 
-impl State for Game {
+impl State for GameState {
     fn on_start(&mut self, engine: &mut Engine) {
         let beatmap = read_beatmap();
 
-        let (music,hitsound_normal,hitsound_clap,hitsound_finish,hitsound_whistle) = {
+        let (music, hitsound_normal, hitsound_clap, hitsound_finish, hitsound_whistle) = {
             let mut loader = engine.world.write_resource::<Loader>();
             loader.register(AudioContext::new());
 
             let music: Source = loader
-                .load_from(beatmap.songpath.clone(), OggFormat, "").wait().unwrap();
+                .load_from(beatmap.songpath.clone(), OggFormat, "")
+                .wait()
+                .unwrap();
 
-            let hitsound_normal: Source = wav_from_file("resources/audio/taiko-normal-hitnormal.wav",&loader);
-            let hitsound_clap: Source = wav_from_file("resources/audio/taiko-normal-hitclap.wav",&loader);
-            let hitsound_finish: Source = wav_from_file("resources/audio/taiko-normal-hitfinish.wav",&loader);
-            let hitsound_whistle: Source = wav_from_file("resources/audio/taiko-normal-hitwhistle.wav",&loader);
-            (music,hitsound_normal,hitsound_clap,hitsound_finish,hitsound_whistle)
+            let hitsound_normal: Source =
+                wav_from_file("resources/audio/taiko-normal-hitnormal.wav", &loader);
+            let hitsound_clap: Source =
+                wav_from_file("resources/audio/taiko-normal-hitclap.wav", &loader);
+            let hitsound_finish: Source =
+                wav_from_file("resources/audio/taiko-normal-hitfinish.wav", &loader);
+            let hitsound_whistle: Source =
+                wav_from_file("resources/audio/taiko-normal-hitwhistle.wav", &loader);
+            (
+                music,
+                hitsound_normal,
+                hitsound_clap,
+                hitsound_finish,
+                hitsound_whistle,
+            )
         };
 
         engine.world.add_resource(Sounds {
@@ -193,8 +320,7 @@ impl State for Game {
             clap: hitsound_clap,
             finish: hitsound_finish,
             whistle: hitsound_whistle,
-         });
-
+        });
         let have_output = engine.world.read_resource::<Option<Output>>().is_some();
 
         let (big_hit_mesh, red_hit_mtl) =
@@ -204,7 +330,7 @@ impl State for Game {
         let (hit_judgement_mesh, hit_judgement_mtl) =
             gen_complete_rect([0.001, 0.25], [0., 1., 0., 1.], engine);
 
-        
+
         if have_output {
             let mut dj = engine.world.write_resource::<Dj>();
             dj.set_volume(0.15);
@@ -216,16 +342,21 @@ impl State for Game {
         }
 
 
-        let text_material:AssetFuture<MaterialComponent> = load_material(engine, "/home/jojolepro/share/Prog/Rust/taiko-copy/resources/fonts/Arial.ttf", TTFFormat);
+        let text_material: AssetFuture<MaterialComponent> = load_material(
+            engine,
+            "/home/jojolepro/share/Prog/Rust/taiko-copy/resources/fonts/Arial.ttf",
+            TTFFormat,
+        );
         //let text_material:AssetFuture<MaterialComponent> = load_material(engine, "/home/jojolepro/share/Prog/Rust/taiko-copy/resources/assets/Sword.png", PngFormat);
-        let text_mesh:AssetFuture<MeshComponent> = {
+        let text_mesh: AssetFuture<MeshComponent> = {
             let verts = gen_rectangle(1., 1.);
             let mesh = Mesh::build(verts);
             let mesh = load_proc_asset(engine, move |engine| {
                 let factory = engine.world.read_resource::<Factory>();
-                factory.create_mesh(mesh).map(MeshComponent::new).map_err(
-                    BoxedErr::new,
-                )
+                factory
+                    .create_mesh(mesh)
+                    .map(MeshComponent::new)
+                    .map_err(BoxedErr::new)
             });
             mesh
         };
@@ -265,9 +396,9 @@ impl State for Game {
             } else {
                 blue_hit_mtl.clone()
             };
-            let mesh = if hit.big{
+            let mesh = if hit.big {
                 big_hit_mesh.clone()
-            }else{
+            } else {
                 small_hit_mesh.clone()
             };
             world
@@ -292,9 +423,7 @@ impl State for Game {
 
         world.add_resource(hitqueue);
 
-        world.add_resource(UserSettings{
-            offset:0.0,
-        });
+        world.add_resource(UserSettings { offset: 0.0 });
 
         //add hit judgement On Time
         // 0.5 screen/sec, 25 ms = 0.0125 screens
@@ -319,46 +448,75 @@ impl State for Game {
         }*/
 
         let mut tr = LocalTransform::default();
-            tr.translation = [0.3, 0.5, 0.0];
-            world
-                .create_entity()
-                .with(hit_judgement_mesh.clone())
-                .with(hit_judgement_mtl.clone())
-                .with(tr)
-                .with(Transform::default())
-                .build();
+        tr.translation = [0.3, 0.5, 0.0];
+        world
+            .create_entity()
+            .with(hit_judgement_mesh.clone())
+            .with(hit_judgement_mtl.clone())
+            .with(tr)
+            .with(Transform::default())
+            .build();
 
 
         let mut tr = LocalTransform::default();
-            tr.translation = [0.3 - (0.0125 * 2.), 0.5, 0.0];
-            world
-                .create_entity()
-                .with(hit_judgement_mesh.clone())
-                .with(hit_judgement_mtl.clone())
-                .with(tr)
-                .with(Transform::default())
-                .build();
+        tr.translation = [0.3 - (0.0125 * 2.), 0.5, 0.0];
+        world
+            .create_entity()
+            .with(hit_judgement_mesh.clone())
+            .with(hit_judgement_mtl.clone())
+            .with(tr)
+            .with(Transform::default())
+            .build();
 
         world.add_resource(beatmap);
 
         let mut tr = LocalTransform::default();
-            tr.translation = [0.3 - (0.0125 * -2.), 0.5, 0.0];
-            world
-                .create_entity()
-                .with(hit_judgement_mesh.clone())
-                .with(hit_judgement_mtl.clone())
-                .with(tr)
-                .with(Transform::default())
-                .build();
+        tr.translation = [0.3 - (0.0125 * -2.), 0.5, 0.0];
+        world
+            .create_entity()
+            .with(hit_judgement_mesh.clone())
+            .with(hit_judgement_mtl.clone())
+            .with(tr)
+            .with(Transform::default())
+            .build();
     }
 
+    fn handle_event(&mut self, _: &mut Engine, event: Event) -> Trans {
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::KeyboardInput {
+                    input: KeyboardInput {
+                        virtual_keycode: Some(VirtualKeyCode::Escape),
+                        ..
+                    },
+                    ..
+                } |
+                WindowEvent::Closed => Trans::Quit,
+                _ => Trans::None,
+            },
+            _ => Trans::None,
+        }
+    }
+}
+
+
+struct MenuState;
+
+impl State for MenuState {
+    fn on_start(&mut self, engine: &mut Engine) {
+        engine.world.add_resource(SystemTracker::new());
+    }
     fn handle_event(&mut self, _: &mut Engine, event: Event) -> Trans {
         match event {
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::KeyboardInput {
-                        input: KeyboardInput { virtual_keycode: Some(VirtualKeyCode::Escape), .. }, ..
-                    } |
+                        input: KeyboardInput {
+                            virtual_keycode: Some(key),
+                            ..
+                        },
+                        ..
+                    } => Trans::None, //Trans::Switch(Box::new(GameState)),
                     WindowEvent::Closed => Trans::Quit,
                     _ => Trans::None,
                 }
@@ -368,29 +526,54 @@ impl State for Game {
     }
 }
 
+/*struct MyState {
+    dispatcher: Dispatcher,
+    scene: Vec<Entity>,
+}
+
+impl State for MyState {
+    fn on_start(&mut self, eng: &mut Engine) {
+        self.dispatcher = DispatcherBuilder::new()
+            // Build your dispatcher
+            .build();
+    }
+
+    fn update(&mut self, eng: &mut Engine) -> Trans {
+        self.dispatcher.dispatch(&mut eng.world.res);
+        Trans::None
+    }
+
+    fn on_stop(&mut self, eng: &mut Engine) {
+        eng.world.delete_entities(&self.scene);
+    }
+}*/
+
 //-------------------------//
 
 
 //----------------GAME SYSTEMS----------
 
-struct GameSystem;
+struct GameSystem{
+    pub reader_id:Option<ReaderId>,
+}
 
 impl<'a> System<'a> for GameSystem {
     type SystemData = (
-     Entities<'a>,
-     WriteStorage<'a, HitObject>,
-     WriteStorage<'a, LocalTransform>,
-     Fetch<'a, Camera>,
-     Fetch<'a, Time>,
-     Fetch<'a, InputHandler>,
-     Fetch<'a, Sounds>,
-     Fetch<'a, Option<Output>>,
-     Fetch<'a, BeatMap>,
-     Fetch<'a, Stopwatch>,
-     FetchMut<'a, HitObjectQueue>,
-     FetchMut<'a, HitOffsets>,
-     FetchMut<'a, UserSettings>,
-     );
+        Entities<'a>,
+        WriteStorage<'a, HitObject>,
+        WriteStorage<'a, LocalTransform>,
+        Fetch<'a, Camera>,
+        Fetch<'a, Time>,
+        Fetch<'a, InputHandler<String,String>>,
+        Fetch<'a, Sounds>,
+        Fetch<'a, Option<Output>>,
+        Fetch<'a, BeatMap>,
+        Fetch<'a, Stopwatch>,
+        FetchMut<'a, EventHandler<InputEvent<String>>>,
+        FetchMut<'a, HitObjectQueue>,
+        FetchMut<'a, HitOffsets>,
+        FetchMut<'a, UserSettings>,
+    );
     fn run(
         &mut self,
         (
@@ -404,63 +587,85 @@ impl<'a> System<'a> for GameSystem {
          audio_output,
          beatmap,
          stopwatch,
+         events,
          mut hitqueue,
          mut hitoffsets,
          mut user_settings,
          ):
          Self::SystemData,
-    ){
+){
+        if self.reader_id.is_none(){
+            self.reader_id = Some(events.register_reader());
+        }
+
         let cur_time = stopwatch.elapsed();
         let cur_time = duration_to_secs(cur_time);
 
         let cur_time = cur_time + user_settings.offset;
 
-        let r1 = pressed(VirtualKeyCode::Z,&*input);
-        let r2 = pressed(VirtualKeyCode::X,&*input);
-        let b1 = pressed(VirtualKeyCode::N,&*input);
-        let b2 = pressed(VirtualKeyCode::M,&*input);
+
+        match events.read(&mut self.reader_id.unwrap()) {
+            Ok(EventReadData::Data(data)) => {
+                println!("ReaderId: {:?}",self.reader_id);
+                for ev in data.cloned().collect::<Vec<_>>(){
+                    //println!("Event: {:?}",ev);
+                    match ev{
+                        KeyPress=>println!("Key press"),
+                        Release=>println!("Key release"),
+                        _ => println!("Something else"),
+                    }
+                }
+            }
+            _ => {},
+        }
+
+        /*let r1 = pressed(VirtualKeyCode::Z, &*input);
+        let r2 = pressed(VirtualKeyCode::X, &*input);
+        let b1 = pressed(VirtualKeyCode::N, &*input);
+        let b2 = pressed(VirtualKeyCode::M, &*input);
         //println!("{} {} {} {}",r1,r2,b1,b2);
 
-        let offset_up = pressed(VirtualKeyCode::Equals,&*input);
-        let offset_down = pressed(VirtualKeyCode::Subtract,&*input);
+        let offset_up = pressed(VirtualKeyCode::Equals, &*input);
+        let offset_down = pressed(VirtualKeyCode::Subtract, &*input);*/
+        let (r1,r2,b1,b2,offset_up,offset_down) = (false,false,false,false,false,false);
 
-        if offset_up{
+        if offset_up {
             user_settings.offset = user_settings.offset + 0.005;
-            println!("Offset: {} ms",user_settings.offset*1000.0);
-        }else if offset_down{
+            println!("Offset: {} ms", user_settings.offset * 1000.0);
+        } else if offset_down {
             user_settings.offset = user_settings.offset - 0.005;
-            println!("Offset: {} ms",user_settings.offset*1000.0);
+            println!("Offset: {} ms", user_settings.offset * 1000.0);
         }
 
         let mut dropped_offsets = Vec::new();
-        while let Some(head) = (&mut hitqueue.queue).pop_front(){
-            if head.time + beatmap.maxhitoffset < cur_time as f32{
+        while let Some(head) = (&mut hitqueue.queue).pop_front() {
+            if head.time + beatmap.maxhitoffset < cur_time as f32 {
                 hitoffsets.offsets.push(None);
                 dropped_offsets.push(head.time);
-                //println!("Dropped object");
-            }else{
+            //println!("Dropped object");
+            } else {
                 hitqueue.queue.push_front(head);
                 break;
             }
         }
 
         if r1 || r2 || b1 || b2 {
-            let (red, dual) = get_key_press_type(r1,r2,b1,b2);
+            let (red, dual) = get_key_press_type(r1, r2, b1, b2);
 
             if let Some(ref output) = *audio_output {
-                if red{
+                if red {
                     play_once(&sounds.normal, 0.10, &output);
-                }else{
+                } else {
                     play_once(&sounds.clap, 0.10, &output);
                 }
-                if dual{
+                if dual {
                     play_once(&sounds.finish, 0.10, &output);
                 }
             }
 
             //Get clickable object
             if let Some(head) = (&mut hitqueue.queue).pop_front() {
-                if let (Some(offset), clicked) = check_hit(&beatmap,&head, cur_time, red, dual) {
+                if let (Some(offset), clicked) = check_hit(&beatmap, &head, cur_time, red, dual) {
                     if clicked {
                         hitoffsets.offsets.push(Some(offset));
                     } else {
@@ -475,15 +680,15 @@ impl<'a> System<'a> for GameSystem {
         }
 
         //println!("cur_time: {}", cur_time);
-        'outer: for (entity,obj, tr) in (&*entities,&mut hitobjects, &mut transforms).join() {
+        'outer: for (entity, obj, tr) in (&*entities, &mut hitobjects, &mut transforms).join() {
             //Drop objects that weren't clicked fast enough
-            for dropped_offset in dropped_offsets.iter(){
-                    if *dropped_offset == obj.time{
-                        //Drop visual object
-                        //println!("Dropped entity");
-                        entities.delete(entity);
-                        //continue 'outer;
-                    }
+            for dropped_offset in dropped_offsets.iter() {
+                if *dropped_offset == obj.time {
+                    //Drop visual object
+                    //println!("Dropped entity");
+                    entities.delete(entity);
+                    //continue 'outer;
+                }
             }
             //Update object position
             tr.translation[0] = ((obj.time - cur_time) * 0.50) + 0.3; //TEMPORARY. TO TEST HIT JUDGEMENT
@@ -495,9 +700,9 @@ impl<'a> System<'a> for GameSystem {
 
 //----------GAME LOCAL FUNCTIONS---------
 
-fn pressed(key:VirtualKeyCode,input:&InputHandler)->bool{
-    input.key_is(key,ButtonState::Pressed(ChangeState::ThisFrame))
-}
+/*fn pressed(key: VirtualKeyCode, input: &InputHandler) -> bool {
+    input.key_is(key, ButtonState::Pressed(ChangeState::ThisFrame))
+}*/
 
 fn get_key_press_type(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) {
     let dual = (z && x) || (two && three);
@@ -509,21 +714,27 @@ fn get_key_press_type(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) 
 ///Found no objects to hit, no offset  (None,false)
 ///Found an object to hit, used wrong button (Some(offset),false)
 ///Found an object to hit, used right button  (Some(offset),true)
-fn check_hit(beatmap: &BeatMap,hit:&HitObject, time: f32, redpressed: bool, dual: bool) -> (Option<f32>, bool) {
+fn check_hit(
+    beatmap: &BeatMap,
+    hit: &HitObject,
+    time: f32,
+    redpressed: bool,
+    dual: bool,
+) -> (Option<f32>, bool) {
     //for hit in &beatmap.objects {
-        if value_near(time, hit.time, beatmap.maxhitoffset) {
-            if (hit.red && redpressed) || (!hit.red && !redpressed) {
-                if (hit.big && dual) || (!hit.big && !dual) {
-                    println!("GOOD HIT @ {}, hit.time {}", time,hit.time);
-                    return (Some(time - hit.time), true);
-                } else {
-                    println!("Wrong dual @ {}, hit.time {}",time,hit.time);
-                    return (Some(time - hit.time), false);
-                }
+    if value_near(time, hit.time, beatmap.maxhitoffset) {
+        if (hit.red && redpressed) || (!hit.red && !redpressed) {
+            if (hit.big && dual) || (!hit.big && !dual) {
+                println!("GOOD HIT @ {}, hit.time {}", time, hit.time);
+                return (Some(time - hit.time), true);
+            } else {
+                println!("Wrong dual @ {}, hit.time {}", time, hit.time);
+                return (Some(time - hit.time), false);
             }
-            println!("Wrong key >_<");
-            return (Some(time - hit.time), false);
         }
+        println!("Wrong key >_<");
+        return (Some(time - hit.time), false);
+    }
     //}
     return (None, false);
 }
@@ -538,9 +749,8 @@ fn read_beatmap() -> BeatMap {
         folder
     )).expect("Failed to open beatmap file");
     let mut content = String::new();
-    file.read_to_string(&mut content).expect(
-        "Failed to read beatmap file",
-    );
+    file.read_to_string(&mut content)
+        .expect("Failed to read beatmap file");
 
     let mut hitobjects: Vec<HitObject> = vec![];
     let mut mode = "";
@@ -558,21 +768,23 @@ fn read_beatmap() -> BeatMap {
             if split.len() != 6 {
                 continue;
             }
-            let objecttype = split[4 as usize].parse::<u8>().expect(
-                "Failed to parse as u8",
-            );
+            let objecttype = split[4 as usize]
+                .parse::<u8>()
+                .expect("Failed to parse as u8");
             let (red, big) = match objecttype {
-                0 => (true, false),//small red
-                4 => (true, true),//big red
-                8 => (false, false),//small blue
-                12 => (false, true),//big blue
+                0 => (true, false),  //small red
+                4 => (true, true),   //big red
+                8 => (false, false), //small blue
+                12 => (false, true), //big blue
                 c => panic!("Unknown hitobject color type: {}", c),
             };
             hitobjects.push(HitObject {
                 red: red,
-                time: osu_to_real_time(split[2 as usize].parse::<i32>().expect(
-                    "Failed to parse as u8",
-                )),
+                time: osu_to_real_time(
+                    split[2 as usize]
+                        .parse::<i32>()
+                        .expect("Failed to parse as u8"),
+                ),
                 big: big,
             });
         }
@@ -591,13 +803,13 @@ fn osu_to_real_time(time: i32) -> f32 {
 
 //----------UTILS----------
 
-struct FPSCounterBundle{
-    samplesize:usize,
+struct FPSCounterBundle {
+    samplesize: usize,
 }
-impl FPSCounterBundle{
-    fn new(samplesize:usize) -> Self {
+impl FPSCounterBundle {
+    fn new(samplesize: usize) -> Self {
         Self {
-            samplesize:samplesize,
+            samplesize: samplesize,
         }
     }
 }
@@ -609,7 +821,7 @@ impl<'a, 'b, T> ECSBundle<'a, 'b, T> for FPSCounterBundle {
         Ok(
             builder
                 .with_resource(FPSCounter::new(20))
-                .with::<FPSCounterSystem>(FPSCounterSystem, "fps_counter_system", &[])
+                .with::<FPSCounterSystem>(FPSCounterSystem, "fps_counter_system", &[]),
         )
     }
 }
@@ -621,9 +833,9 @@ where
 {
     let future = {
         let factory = engine.world.read_resource::<Factory>();
-        factory.create_material(MaterialBuilder::new()).map_err(
-            BoxedErr::new,
-        )
+        factory
+            .create_material(MaterialBuilder::new())
+            .map_err(BoxedErr::new)
     }.join({
         let loader = engine.world.read_resource::<Loader>();
         loader.load_from::<TextureComponent, _, _, _>(albedo, format, "")
@@ -665,9 +877,10 @@ fn gen_complete_rect(
     let mesh = Mesh::build(verts);
     let mesh = load_proc_asset(engine, move |engine| {
         let factory = engine.world.read_resource::<Factory>();
-        factory.create_mesh(mesh).map(MeshComponent::new).map_err(
-            BoxedErr::new,
-        )
+        factory
+            .create_mesh(mesh)
+            .map(MeshComponent::new)
+            .map_err(BoxedErr::new)
     });
 
     let mtl = load_proc_asset(engine, move |engine| {
@@ -696,7 +909,6 @@ fn gen_rectangle(w: f32, h: f32) -> Vec<PosNormTex> {
             a_normal: [0., 0., 1.],
             a_tex_coord: [1., 1.],
         },
-
         PosNormTex {
             a_position: [w / 2., h / 2., 0.],
             a_normal: [0., 0., 1.],
@@ -716,16 +928,15 @@ fn gen_rectangle(w: f32, h: f32) -> Vec<PosNormTex> {
     data
 }
 
-fn wav_from_file(path:&str,loader:&Loader)->Source{
-    loader.load_from(
-            format!(
-                "{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                path,
-            ),
+fn wav_from_file(path: &str, loader: &Loader) -> Source {
+    loader
+        .load_from(
+            format!("{}/{}", env!("CARGO_MANIFEST_DIR"), path,),
             WavFormat,
             "",
-        ).wait().unwrap()
+        )
+        .wait()
+        .unwrap()
 }
 
 //---------------------------//
@@ -741,15 +952,12 @@ impl Format for TTFFormat {
     type Result = ImageFuture;
 
     fn parse(&self, bytes: Vec<u8>, pool: &ThreadPool) -> Self::Result {
-        ImageFuture::spawn(pool, move || {
-            load_ttf(bytes).map(|raw| ImageData { raw })
-        })
+        ImageFuture::spawn(pool, move || load_ttf(bytes).map(|raw| ImageData { raw }))
     }
 }
 
 
-fn load_ttf(bytes:Vec<u8>)->imagefmt::Result<Image<u8>>{
-
+fn load_ttf(bytes: Vec<u8>) -> imagefmt::Result<Image<u8>> {
     //let font_data = include_bytes!("/home/jojolepro/share/Prog/Rust/taiko-copy/resources/fonts/Arial.ttf");
     let font_data = bytes;
     let collection = FontCollection::from_bytes(&font_data[..] as &[u8]);
@@ -760,7 +968,10 @@ fn load_ttf(bytes:Vec<u8>)->imagefmt::Result<Image<u8>>{
     let pixel_height = height.ceil() as usize;
 
     // 2x scale in x direction to counter the aspect ratio of monospace characters.
-    let scale = Scale { x: height*2.0, y: height };
+    let scale = Scale {
+        x: height * 2.0,
+        y: height,
+    };
 
     // The origin of a line of text is at the baseline (roughly where non-descending letters sit).
     // We don't want to clip the text, so we shift it down with an offset when laying it out.
@@ -772,10 +983,17 @@ fn load_ttf(bytes:Vec<u8>)->imagefmt::Result<Image<u8>>{
     // Glyphs to draw for "RustType". Feel free to try other strings.
     let glyphs: Vec<PositionedGlyph> = font.layout("A", scale, offset).collect();
 
-    let width = glyphs.iter().rev()
-        .filter_map(|g| g.pixel_bounding_box()
-                    .map(|b| b.min.x as f32 + g.unpositioned().h_metrics().advance_width))
-        .next().unwrap_or(0.0).ceil() as usize;
+    let width = glyphs
+        .iter()
+        .rev()
+        .filter_map(|g| {
+            g.pixel_bounding_box().map(|b| {
+                b.min.x as f32 + g.unpositioned().h_metrics().advance_width
+            })
+        })
+        .next()
+        .unwrap_or(0.0)
+        .ceil() as usize;
 
     //fill with 255,255,255,255 and set 4th to grayscale
     let mut pixel_data = vec![255 as u8; width * pixel_height * 4];
@@ -794,24 +1012,24 @@ fn load_ttf(bytes:Vec<u8>)->imagefmt::Result<Image<u8>>{
                 if x >= 0 && x < width as i32 && y >= 0 && y < pixel_height as i32 {
                     let x = x as usize;
                     let y = y as usize;
-                    println!("x {}, y {}, v {}",x,y,v);
-                    println!("Setting pixel alpha, {}:{}",((x + y * width) * 4 + 3 ),c);
-                    pixel_data[(x + y * width) * 4 + 3 ] = c;
+                    println!("x {}, y {}, v {}", x, y, v);
+                    println!("Setting pixel alpha, {}:{}", ((x + y * width) * 4 + 3), c);
+                    pixel_data[(x + y * width) * 4 + 3] = c;
 
                     //FOR TESTING
-                    pixel_data[(x + y * width) * 4 ] = c;
-                    pixel_data[(x + y * width) * 4 +1] = c;
-                    pixel_data[(x + y * width) * 4 +2] = c;
+                    pixel_data[(x + y * width) * 4] = c;
+                    pixel_data[(x + y * width) * 4 + 1] = c;
+                    pixel_data[(x + y * width) * 4 + 2] = c;
                 }
             })
         }
     }
 
     Ok(Image::<u8> {
-        w   : width as usize,
-        h   : pixel_height as usize,
-        fmt : ColFmt::RGBA,
-        buf : pixel_data,
+        w: width as usize,
+        h: pixel_height as usize,
+        fmt: ColFmt::RGBA,
+        buf: pixel_data,
     })
 
     // Find the most visually pleasing width to display
@@ -823,7 +1041,7 @@ fn load_ttf(bytes:Vec<u8>)->imagefmt::Result<Image<u8>>{
     println!("width: {}, height: {}", width, pixel_height);*/
 
 
-/*
+    /*
     // Rasterise directly into ASCII art.
     let mut pixel_data = vec![b'@'; width * pixel_height];
     let mapping = b"@%#x+=:-. "; // The approximation of greyscale

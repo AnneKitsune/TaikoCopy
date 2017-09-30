@@ -2,12 +2,13 @@
 name = "taiko-copy"
 version = "0.1.0"
 dependencies = [
- "amethyst 0.5.1",
+ "amethyst 0.5.1 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)",
  "futures 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "imagefmt 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusttype 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "specs 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -24,11 +25,12 @@ dependencies = [
 [[package]]
 name = "amethyst"
 version = "0.5.1"
+source = "git+https://github.com/xaeroxe/amethyst?branch=input-refactor#66aafb8ecf4c1293416fc256a6e5504d0839e816"
 dependencies = [
- "amethyst_assets 0.1.0",
- "amethyst_config 0.4.0",
- "amethyst_input 0.1.0",
- "amethyst_renderer 0.5.0",
+ "amethyst_assets 0.1.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)",
+ "amethyst_config 0.4.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)",
+ "amethyst_input 0.1.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)",
+ "amethyst_renderer 0.5.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)",
  "cgmath 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cpal 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -38,10 +40,11 @@ dependencies = [
  "genmesh 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "imagefmt 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "num_cpus 1.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rodio 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "shred 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shrev 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "specs 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "ticketed_lock 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -52,6 +55,7 @@ dependencies = [
 [[package]]
 name = "amethyst_assets"
 version = "0.1.0"
+source = "git+https://github.com/xaeroxe/amethyst?branch=input-refactor#66aafb8ecf4c1293416fc256a6e5504d0839e816"
 dependencies = [
  "derivative 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -65,6 +69,7 @@ dependencies = [
 [[package]]
 name = "amethyst_config"
 version = "0.4.0"
+source = "git+https://github.com/xaeroxe/amethyst?branch=input-refactor#66aafb8ecf4c1293416fc256a6e5504d0839e816"
 dependencies = [
  "ron 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -73,10 +78,12 @@ dependencies = [
 [[package]]
 name = "amethyst_input"
 version = "0.1.0"
+source = "git+https://github.com/xaeroxe/amethyst?branch=input-refactor#66aafb8ecf4c1293416fc256a6e5504d0839e816"
 dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shrev 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -84,6 +91,7 @@ dependencies = [
 [[package]]
 name = "amethyst_renderer"
 version = "0.5.0"
+source = "git+https://github.com/xaeroxe/amethyst?branch=input-refactor#66aafb8ecf4c1293416fc256a6e5504d0839e816"
 dependencies = [
  "cgmath 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "derivative 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -963,6 +971,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "shrev"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "siphasher"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1215,6 +1228,11 @@ dependencies = [
 
 [metadata]
 "checksum alsa-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9013f855a808ab924a4c08b5c1ec9bd6b04fdb2295b4d570fb723e0ed2802a4f"
+"checksum amethyst 0.5.1 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)" = "<none>"
+"checksum amethyst_assets 0.1.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)" = "<none>"
+"checksum amethyst_config 0.4.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)" = "<none>"
+"checksum amethyst_input 0.1.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)" = "<none>"
+"checksum amethyst_renderer 0.5.0 (git+https://github.com/xaeroxe/amethyst?branch=input-refactor)" = "<none>"
 "checksum android_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "000444226fcff248f2bc4c7625be32c63caccfecc2723a2b9f78a7487a49c407"
 "checksum approx 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "08abcc3b4e9339e33a3d0a5ed15d84a687350c05689d825e0f6655eef9e76a94"
 "checksum arrayvec 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)" = "699e63a93b79d717e8c3b5eb1b28b7780d0d6d9e59a72eb769291c83b0c8dc67"
@@ -1321,6 +1339,7 @@ dependencies = [
 "checksum shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "72f20b8f3c060374edb8046591ba28f62448c369ccbdc7b02075103fb3a9e38d"
 "checksum shred 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "629c1a9d7d726f1acefec1d1efcf2b26dbaeeb9c3cb551108c56633fd69b15fa"
 "checksum shred-derive 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a4a894913b6e93fe2cd712a3bc955ec6f6b01c675c1c58b02fdfa13f77868049"
+"checksum shrev 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5e72a4ab21618f7eeae8de8e48f46c9150a676297f196e1eee657297a057c128"
 "checksum siphasher 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0df90a788073e8d0235a67e50441d47db7c8ad9debd91cbf43736a2a92d36537"
 "checksum smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8fcd03faf178110ab0334d74ca9631d77f94c8c11cc77fcb59538abf0025695d"
 "checksum specs 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)" = "c7ab99d23fe401e4c89bbbcbbd4e82a39ea61042bddc21a66d0a59576f5a5768"

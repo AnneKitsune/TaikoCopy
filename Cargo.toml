@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["jojo <jojolepromain@gmail.com>"]
 
 [dependencies]
-amethyst = { path = "../fix_materials" }
+amethyst = { git = "https://github.com/xaeroxe/amethyst", branch="input-refactor" }
 futures = "*"
 rayon = "*"
 rand = "0.3.16"
@@ -12,3 +12,4 @@ time = "0.1"
 winit = "0.7"
 rusttype = "0.2.1"
 imagefmt = "4.0"
+specs = "0.9.5"
