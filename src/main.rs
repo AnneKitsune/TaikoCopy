@@ -604,7 +604,7 @@ impl<'a> System<'a> for GameSystem {
         let cur_time = cur_time + user_settings.offset;
 
 
-        match events.read(&mut self.reader_id.unwrap()) {
+        match events.read(self.reader_id.as_mut().unwrap()) {
             Ok(EventReadData::Data(data)) => {
                 println!("ReaderId: {:?}",self.reader_id);
                 for ev in data.cloned().collect::<Vec<_>>(){
