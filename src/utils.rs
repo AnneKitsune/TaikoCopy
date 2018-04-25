@@ -1,22 +1,18 @@
 extern crate amethyst;
-extern crate futures;
-extern crate imagefmt;
 extern crate itertools;
-extern crate rayon;
-extern crate rusttype;
 
 use self::itertools::Itertools;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
-use amethyst::renderer::{ImageData, ImageError, Material, MaterialDefaults, Mesh,
-                         PngFormat, PosTex, Texture, TextureData, TextureMetadata};
+use amethyst::renderer::{ImageError,Event,KeyboardInput, Material, MaterialDefaults, Mesh,
+                         PngFormat, PosTex, Texture, TextureData, TextureMetadata,WindowEvent};
 use amethyst::audio::WavFormat;
-use std::io::Read;
-
 use amethyst::audio::Source;
-
+use amethyst::input::InputEvent;
 use amethyst::prelude::*;
+use amethyst::winit::VirtualKeyCode;
 
+use std::io::Read;
 use std::ops::{Add, Sub};
 use std::fs::File;
 use std::fs;
@@ -254,4 +250,31 @@ pub fn wav_from_file(
         (),
         &storage,
     )
+}
+
+pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
+    match event {
+        &Event::WindowEvent { ref event, .. } => match event {
+            &WindowEvent::KeyboardInput {
+                input:
+                KeyboardInput {
+                    virtual_keycode: Some(k),
+                    ..
+                },
+                ..
+            } => k == key,
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+pub fn window_closed(event: &Event) -> bool{
+    match event {
+        &Event::WindowEvent { ref event, .. } => match event {
+            &WindowEvent::Closed => true,
+            _ => false,
+        },
+        _ => false,
+    }
 }

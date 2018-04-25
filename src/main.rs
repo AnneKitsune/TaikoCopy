@@ -44,7 +44,8 @@ fn main() {
 
     let pipe = Pipeline::build().with_stage(
         Stage::with_backbuffer()
-            .clear_target([255.0, 105.0, 180.0, 1.0], 1.0)
+            //.clear_target([255.0, 105.0, 180.0, 1.0], 1.0)
+            .clear_target([1.0, 0.5, 0.75, 1.0], 1.0)
             .with_pass(DrawFlat::<PosTex>::new()),
     );
     //let maps_dir = format!("{}/resources/assets/maps/", env!("CARGO_MANIFEST_DIR"));

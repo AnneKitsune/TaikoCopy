@@ -149,9 +149,15 @@ impl State for GameState {
             &world.read_resource::<Loader>(),
             &world.read_resource(),
         );
-        let hit_judgement_mesh = gen_rectangle_mesh(
+        /*let hit_judgement_mesh = gen_rectangle_mesh(
             0.001,
             0.25,
+            &world.read_resource::<Loader>(),
+            &world.read_resource(),
+        );*/
+        let hit_judgement_mesh = gen_rectangle_mesh(
+            20.0,
+            20.0,
             &world.read_resource::<Loader>(),
             &world.read_resource(),
         );
@@ -175,9 +181,6 @@ impl State for GameState {
             &world.read_resource(),
         );
 
-        let mut tr = Transform::default();
-        tr.translation = [0.3, 0.3, 0.0].into();
-
 
         world.add_resource(HitResultTextures {
             miss,
@@ -200,12 +203,14 @@ impl State for GameState {
         stopwatch.stopwatch.start();
         world.add_resource(stopwatch);
 
+        let mut tr = Transform::default();
+        tr.translation = [0.0,0.0,-0.5].into();
+
         world
             .create_entity()
             .with(Camera::from(Projection::orthographic(0.0, 1.0, 1.0, 0.0)))
-            .with(GlobalTransform(
-                Matrix4::from_translation(Vector3::new(0.0, 0.0, 1.0)).into(),
-            ))
+            .with(tr)
+            .with(GlobalTransform::default())
             .build();
 
         let mut hitqueue = HitObjectQueue::new();
@@ -267,21 +272,10 @@ impl State for GameState {
         Trans::None
     }
     fn handle_event(&mut self, _: &mut World, event: Event) -> Trans {
-        match event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
-                            ..
-                        },
-                    ..
-                }
-                | WindowEvent::Closed => Trans::Quit,
-                _ => Trans::None,
-            },
-            _ => Trans::None,
+        if key_pressed_from_event(VirtualKeyCode::Escape,&event) || window_closed(&event){
+            return Trans::Quit;
         }
+        Trans::None
     }
 }
 
@@ -300,27 +294,19 @@ impl State for MenuState {
         for b in &beatmaps {
             println!("Found beatmap: {}", b.songpath);
         }
-        world.add_resource(beatmaps.swap_remove(1));
-        //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
+        //world.add_resource(beatmaps.swap_remove(1));
+        world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
 
         world.add_resource(EventChannel::<HitResult>::new());
     }
     fn handle_event(&mut self, world: &mut World, event: Event) -> Trans {
-        match event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            virtual_keycode: Some(key),
-                            ..
-                        },
-                    ..
-                } => Trans::Switch(Box::new(BeatmapLoadState { audio_handle: None })),
-                WindowEvent::Closed => Trans::Quit,
-                _ => Trans::None,
-            },
-            _ => Trans::None,
+        if key_pressed_from_event(VirtualKeyCode::Space,&event){
+            return Trans::Switch(Box::new(BeatmapLoadState { audio_handle: None }));
         }
+        if window_closed(&event){
+            return Trans::Quit;
+        }
+        Trans::None
     }
 }
 
