@@ -1,0 +1,7 @@
+{
+	"input": "./resources/cfg/input.ron",
+	"lang": "./resources/cfg/lang.ron",
+	"player_settings": "./resources/cfg/player_settings.ron",
+	"maps": "./resources/assets/maps",
+	"hit_results": "./resources/assets/textures/hitresult",
+}

@@ -4,12 +4,16 @@ version = "0.1.0"
 authors = ["jojo <jojolepromain@gmail.com>"]
 
 [dependencies]
-amethyst = { git = "https://github.com/xaeroxe/amethyst", branch="input-refactor" }
+amethyst = { git = "https://github.com/amethyst/amethyst", branch="develop" }
 futures = "*"
 rayon = "*"
 rand = "0.3.16"
 time = "0.1"
 winit = "0.7"
-rusttype = "0.2.1"
-imagefmt = "4.0"
-specs = "0.9.5"
+rusttype = "*"
+imagefmt = "*"
+#specs = "*"
+#shred = "*"
+walkdir = "1"
+itertools = "0.7.0"
+log = "*"
