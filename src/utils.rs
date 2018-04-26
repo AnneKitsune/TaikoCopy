@@ -106,16 +106,21 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
     for line in content.lines() {
         if line == "[HitObjects]" {
             mode = "HitObjects";
+        }else if line == "[General]"{
+            mode = "General";
         }
-        if line.starts_with("AudioFilename:") {
-            songpath = &line[15..];
-            if !songpath.ends_with(".ogg") {
-                return None;
+        if mode == "General" {
+            if line.starts_with("AudioFilename:") {
+                songpath = &line[15..];
+                if !songpath.ends_with(".ogg") {
+                    return None;
+                }
             }
-        }
-        if line.starts_with("Mode:") {
-            if &line[6..] != "1" {
-                return None;
+            if line.starts_with("Mode:") {
+                // 1=taiko,3=mania
+                if &line[6..] != "1" {
+                    return None;
+                }
             }
         }
         if mode == "HitObjects" {
@@ -206,7 +211,8 @@ pub fn gen_rectangle_mesh(
     loader: &Loader,
     storage: &AssetStorage<Mesh>,
 ) -> Handle<Mesh> {
-    loader.load_from_data(gen_rectangle_vertices(w, h).into(), (), &storage)
+    let mut verts = gen_rectangle_vertices(w, h);
+    loader.load_from_data(verts.into(), (), &storage)
 }
 pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
     let data: Vec<PosTex> = vec![

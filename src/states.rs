@@ -150,15 +150,9 @@ impl State for GameState {
             &world.read_resource::<Loader>(),
             &world.read_resource(),
         );
-        /*let hit_judgement_mesh = gen_rectangle_mesh(
+        let hit_judgement_mesh = gen_rectangle_mesh(
             0.001,
             0.25,
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
-        );*/
-        let hit_judgement_mesh = gen_rectangle_mesh(
-            20.0,
-            20.0,
             &world.read_resource::<Loader>(),
             &world.read_resource(),
         );
@@ -204,17 +198,11 @@ impl State for GameState {
         stopwatch.stopwatch.start();
         world.add_resource(stopwatch);
 
-        let mut tr = Transform::default();
-        tr.translation = [0.0,0.0,-0.5].into();
-
         world
             .create_entity()
-            .with(Camera::from(Projection::orthographic(-100.0, 100.0, 100.0, -1000.0)))
-            /*.with(tr)
-            .with(GlobalTransform::default())*/
+            .with(Camera::from(Projection::orthographic(0.0,1.0,1.0,0.0)))
             .with(GlobalTransform(
                 Matrix4::from_translation(Vector3::new(0.0, 0.0, 1.0)).into(),
-                //Matrix4::from_translation([0.0, 0.0, -4.0].into()) * Matrix4::from_angle_y(Deg(180.)),
             ))
             .build();
 
@@ -240,23 +228,10 @@ impl State for GameState {
                 .with(mtl)
                 .with(hit.clone())
                 .with(tr)
-                .with(Transform::default())
+                .with(GlobalTransform::default())
                 .build();
         }
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
-        println!("PEPERONIIII");
+        world.add_resource(hitqueue);
 
 
         //add hit judgement On Time
@@ -283,7 +258,7 @@ impl State for GameState {
             .with(hit_judgement_mesh.clone())
             .with(hit_judgement_mtl.clone())
             .with(tr)
-            .with(Transform::default())
+            .with(GlobalTransform::default())
             .build();
     }
 
@@ -314,8 +289,8 @@ impl State for MenuState {
         for b in &beatmaps {
             println!("Found beatmap: {}", b.songpath);
         }
-        //world.add_resource(beatmaps.swap_remove(1));
-        world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
+        world.add_resource(beatmaps.swap_remove(1)); //tephereth
+        //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
 
         world.add_resource(EventChannel::<HitResult>::new());
     }

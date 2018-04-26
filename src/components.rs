@@ -12,3 +12,13 @@ pub struct HitObject {
 impl Component for HitObject {
     type Storage = VecStorage<HitObject>;
 }
+
+pub struct ManiaHitObject{
+    // 512 / first data column
+    lane: i32,
+}
+
+pub struct TaikoHitObject{
+    red: bool,
+    big: bool,
+}

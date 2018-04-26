@@ -89,6 +89,7 @@ impl<'a> System<'a> for GameSystem {
             }
         }
 
+
         if offset_up {
             user_settings.offset = user_settings.offset + 0.005;
             println!("Offset: {} ms", user_settings.offset * 1000.0);
@@ -103,6 +104,7 @@ impl<'a> System<'a> for GameSystem {
                 hitoffsets.offsets.push(None);
                 dropped_offsets.push(head.time);
             } else {
+                // put back into the list
                 hitqueue.queue.push_front(head);
                 break;
             }
