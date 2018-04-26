@@ -20,6 +20,7 @@ use amethyst::prelude::*;
 use amethyst::core::timing::Stopwatch;
 use futures::Future;
 use amethyst::ecs::prelude::*;
+use amethyst::core::cgmath::Deg;
 use amethyst::shrev::{EventChannel, ReaderId};
 
 use rayon::ThreadPool;
@@ -208,9 +209,13 @@ impl State for GameState {
 
         world
             .create_entity()
-            .with(Camera::from(Projection::orthographic(0.0, 1.0, 1.0, 0.0)))
-            .with(tr)
-            .with(GlobalTransform::default())
+            .with(Camera::from(Projection::orthographic(-100.0, 100.0, 100.0, -1000.0)))
+            /*.with(tr)
+            .with(GlobalTransform::default())*/
+            .with(GlobalTransform(
+                Matrix4::from_translation(Vector3::new(0.0, 0.0, 1.0)).into(),
+                //Matrix4::from_translation([0.0, 0.0, -4.0].into()) * Matrix4::from_angle_y(Deg(180.)),
+            ))
             .build();
 
         let mut hitqueue = HitObjectQueue::new();
@@ -238,6 +243,21 @@ impl State for GameState {
                 .with(Transform::default())
                 .build();
         }
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+        println!("PEPERONIIII");
+
 
         //add hit judgement On Time
         // 0.5 screen/sec, 25 ms = 0.0125 screens
