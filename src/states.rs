@@ -22,6 +22,8 @@ use futures::Future;
 use amethyst::ecs::prelude::*;
 use amethyst::core::cgmath::Deg;
 use amethyst::shrev::{EventChannel, ReaderId};
+use amethyst::audio::WavFormat;
+use amethyst_extra::AssetLoader;
 
 use rayon::ThreadPool;
 
@@ -52,27 +54,14 @@ impl GameState {
         }
     }
     pub fn load_sounds(world: &World) -> Sounds {
-        let loader = world.read_resource::<Loader>();
-        let hitsound_normal = wav_from_file(
-            "resources/audio/taiko-normal-hitnormal.wav",
-            &loader,
-            &world.read_resource(),
-        );
-        let hitsound_clap = wav_from_file(
-            "resources/audio/taiko-normal-hitclap.wav",
-            &loader,
-            &world.read_resource(),
-        );
-        let hitsound_finish = wav_from_file(
-            "resources/audio/taiko-normal-hitfinish.wav",
-            &loader,
-            &world.read_resource(),
-        );
-        let hitsound_whistle = wav_from_file(
-            "resources/audio/taiko-normal-hitwhistle.wav",
-            &loader,
-            &world.read_resource(),
-        );
+        //let loader = world.read_resource::<Loader>();
+        let asset_loader = world.read_resource::<AssetLoader>();
+        
+        // Unwrap because we know the path is right.
+        let hitsound_normal = asset_loader.load("audio/taiko-normal-hitnormal.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
+        let hitsound_clap = asset_loader.load("audio/taiko-normal-hitclap.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
+        let hitsound_finish = asset_loader.load("audio/taiko-normal-hitfinish.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
+        let hitsound_whistle = asset_loader.load("audio/taiko-normal-hitwhistle.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
         Sounds {
             normal: hitsound_normal,
             clap: hitsound_clap,
@@ -84,6 +73,7 @@ impl GameState {
         hit_results_path: String,
         world: &World,
     ) -> (Material, Material, Material) {
+        
         let loader = world.read_resource::<Loader>();
         (
             material_from_png_simple(
