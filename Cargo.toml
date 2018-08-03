@@ -17,3 +17,4 @@ imagefmt = "*"
 walkdir = "1"
 itertools = "0.7.0"
 log = "*"
+amethyst-extra = { path = "../amethyst-extra" }

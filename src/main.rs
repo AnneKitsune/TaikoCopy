@@ -10,6 +10,8 @@ extern crate time;
 extern crate winit;
 #[macro_use]
 extern crate log;
+extern crate core;
+extern crate amethyst_extra;
 
 use std::time::Duration;
 use amethyst::audio::{AudioBundle, SourceHandle};
@@ -19,8 +21,11 @@ use amethyst::core::Time;
 use amethyst::input::InputBundle;
 use amethyst::prelude::*;
 use amethyst::utils::fps_counter::FPSCounterBundle;
-use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
-                         Stage};
+//use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
+//                        Stage};
+use amethyst::renderer::*;
+use amethyst_extra::*;
+use std::env;
 
 mod systems;
 mod states;
@@ -31,8 +36,27 @@ mod utils;
 use states::*;
 use resources::*;
 
-fn main() {
-    let path = format!("{}/resources/config.ron", env!("CARGO_MANIFEST_DIR"));
+fn main() -> amethyst::Result<()>{
+    amethyst::start_logger(Default::default());
+    // run_dir() -> String
+    let bin_path = env::args().next().expect("Failed to get binary executable path");
+    let last_slash_index = bin_path.rfind("/").expect("Failed to get last slash in binary path.");
+    let mut base_path = bin_path[..last_slash_index].to_string();
+
+    if base_path.contains("target/"){
+        base_path = String::from(".");
+    }
+
+    let asset_loader = AssetLoader::new(
+        &format!("{}/assets", base_path).to_string(),
+        "base",
+    );
+    let display_config_path = asset_loader.resolve_path("config/display.ron").unwrap();
+    let key_bindings_path = asset_loader.resolve_path("config/input.ron").unwrap();
+
+
+
+    /*let path = format!("{}/resources/config.ron", env!("CARGO_MANIFEST_DIR"));
     let display_config = DisplayConfig::load(path);
 
     let paths = Paths::from_file(&format!("{}/paths.ron", env!("CARGO_MANIFEST_DIR")));
@@ -40,9 +64,9 @@ fn main() {
         .path("input")
         .expect("Failed to find input config path")
         .clone();
-    println!("{}", input_path);
+    println!("{}", input_path);*/
 
-    let pipe = Pipeline::build().with_stage(
+    /*let pipe = Pipeline::build().with_stage(
         Stage::with_backbuffer()
             //.clear_target([255.0, 105.0, 180.0, 1.0], 1.0)
             .clear_target([1.0, 0.5, 0.75, 1.0], 1.0)
@@ -66,7 +90,27 @@ fn main() {
         .expect("Failed to build dj bundle")
         .with_bundle(RenderBundle::new(pipe, Some(display_config)))
         .expect("Failed to load render bundle");
-    game.build().expect("Failed to build game").run();
+    game.build().expect("Failed to build game").run();*/
+
+
+
+
+    let game_data_builder = GameDataBuilder::default()
+        .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?)
+        .expect("Failed to load input bindings")
+        .with_bundle(TransformBundle::new())
+        .expect("Failed to build transform bundle")
+        .with_bundle(AudioBundle::new(|music: &mut Time| None))
+        .expect("Failed to build dj bundle")
+        //.with_bundle(RenderBundle::new(pipe, Some(display_config)))
+        //.expect("Failed to build render bundle")
+        .with_basic_renderer(display_config_path, DrawFlat::<PosTex>::new().with_transparency(ColorMask::all(), ALPHA, None), true)?;
+    let resources_directory = format!("");
+    Application::build(resources_directory, MenuState)?
+        .with_resource(asset_loader)
+        .build(game_data_builder)?
+        .run();
+    Ok(())
 }
 
 /*

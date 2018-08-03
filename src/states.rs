@@ -108,16 +108,16 @@ impl GameState {
     }
 }
 
-impl State for GameState {
-    fn on_start(&mut self, world: &mut World) {
-        self.dispatch.setup(&mut world.res);
+impl<'a,'b> State<GameData<'a,'b>> for GameState {
+    fn on_start(&mut self, data: StateData<GameData<'a,'b>>) {
+        self.dispatch.setup(&mut data.world.res);
 
-        let beatmap = world
+        let beatmap = data.world
             .res
             .try_fetch::<BeatMap>()
             .expect("Can't fetch beatmap from resources.")
             .clone();
-        let hit_results_path = world
+        let hit_results_path = data.world
             .res
             .try_fetch::<Paths>()
             .expect("Can't fetch folder paths.")
@@ -127,68 +127,68 @@ impl State for GameState {
 
         //let music:SourceHandle = world.read_resource::<Loader>().load(beatmap.songpath.clone(), OggFormat, (),(),&world.read_resource());
 
-        let sounds = GameState::load_sounds(&world);
+        let sounds = GameState::load_sounds(&data.world);
 
-        let (miss, good, perfect) = GameState::load_hit_results(hit_results_path, &world);
+        let (miss, good, perfect) = GameState::load_hit_results(hit_results_path, &data.world);
 
         let mesh = gen_rectangle_mesh(
             0.05,
             0.05,
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
         );
 
         let big_hit_mesh = gen_rectangle_mesh(
             0.01,
             0.25,
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
         );
         let small_hit_mesh = gen_rectangle_mesh(
             0.005,
             0.15,
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
         );
         let hit_judgement_mesh = gen_rectangle_mesh(
             0.001,
             0.25,
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
         );
 
         let red_hit_mtl = material_from_color(
             [1.0, 0.0, 0.0, 1.0],
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
+            &data.world.read_resource(),
         );
         let blue_hit_mtl = material_from_color(
             [0.0, 0.0, 1.0, 1.0],
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
+            &data.world.read_resource(),
         );
         let hit_judgement_mtl = material_from_color(
             [0.0, 1.0, 0.0, 1.0],
-            &world.read_resource::<Loader>(),
-            &world.read_resource(),
-            &world.read_resource(),
+            &data.world.read_resource::<Loader>(),
+            &data.world.read_resource(),
+            &data.world.read_resource(),
         );
 
 
-        world.add_resource(HitResultTextures {
+        data.world.add_resource(HitResultTextures {
             miss,
             good,
             perfect,
         });
 
-        world.add_resource(sounds);
+        data.world.add_resource(sounds);
 
-        if let Some(ref output) = world.read_resource::<Option<Output>>().as_ref() {
-            let mut sink = world.write_resource::<AudioSink>();
+        if let Some(ref output) = data.world.read_resource::<Option<Output>>().as_ref() {
+            let mut sink = data.world.write_resource::<AudioSink>();
             sink.set_volume(0.25);
-            let m = world.read_resource::<AssetStorage<Source>>();
+            let m = data.world.read_resource::<AssetStorage<Source>>();
             output.play_once(m.get(&self.audio_handle).expect("Can't find music"), 0.2);
         }
 
@@ -196,9 +196,9 @@ impl State for GameState {
             stopwatch: Stopwatch::new(),
         };
         stopwatch.stopwatch.start();
-        world.add_resource(stopwatch);
+        data.world.add_resource(stopwatch);
 
-        world
+        data.world
             .create_entity()
             .with(Camera::from(Projection::orthographic(0.0,1.0,1.0,0.0)))
             .with(GlobalTransform(
@@ -222,7 +222,7 @@ impl State for GameState {
             } else {
                 small_hit_mesh.clone()
             };
-            world
+            data.world
                 .create_entity()
                 .with(mesh)
                 .with(mtl)
@@ -231,7 +231,7 @@ impl State for GameState {
                 .with(GlobalTransform::default())
                 .build();
         }
-        world.add_resource(hitqueue);
+        data.world.add_resource(hitqueue);
 
 
         //add hit judgement On Time
@@ -253,7 +253,7 @@ impl State for GameState {
 
         let mut tr = Transform::default();
         tr.translation = [0.3, 0.5, 0.0].into();
-        world
+        data.world
             .create_entity()
             .with(hit_judgement_mesh.clone())
             .with(hit_judgement_mtl.clone())
@@ -262,11 +262,11 @@ impl State for GameState {
             .build();
     }
 
-    fn update(&mut self, world: &mut World) -> Trans {
-        self.dispatch.dispatch(&mut world.res);
+    fn update(&mut self, data: StateData<GameData<'a,'b>>) -> Trans<GameData<'a,'b>> {
+        self.dispatch.dispatch(&mut data.world.res);
         Trans::None
     }
-    fn handle_event(&mut self, _: &mut World, event: Event) -> Trans {
+    fn handle_event(&mut self, _: StateData<GameData<'a,'b>>, event: Event) -> Trans<GameData<'a,'b>> {
         if key_pressed_from_event(VirtualKeyCode::Escape,&event) || window_closed(&event){
             return Trans::Quit;
         }
@@ -276,9 +276,9 @@ impl State for GameState {
 
 pub struct MenuState;
 
-impl State for MenuState {
-    fn on_start(&mut self, world: &mut World) {
-        let map_folder = &world
+impl<'a,'b> State<GameData<'a,'b>> for MenuState {
+    fn on_start(&mut self, data: StateData<GameData<'a,'b>>) {
+        let map_folder = &data.world
             .res
             .try_fetch::<Paths>()
             .expect("Can't fetch folder paths.")
@@ -289,12 +289,12 @@ impl State for MenuState {
         for b in &beatmaps {
             println!("Found beatmap: {}", b.songpath);
         }
-        world.add_resource(beatmaps.swap_remove(1)); //tephereth
+        data.world.add_resource(beatmaps.swap_remove(1)); //tephereth
         //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
 
-        world.add_resource(EventChannel::<HitResult>::new());
+        data.world.add_resource(EventChannel::<HitResult>::new());
     }
-    fn handle_event(&mut self, world: &mut World, event: Event) -> Trans {
+    fn handle_event(&mut self, _: StateData<GameData<'a,'b>>, event: Event) -> Trans<GameData<'a,'b>> {
         if key_pressed_from_event(VirtualKeyCode::Space,&event){
             return Trans::Switch(Box::new(BeatmapLoadState { audio_handle: None }));
         }
@@ -309,31 +309,31 @@ pub struct BeatmapLoadState {
     audio_handle: Option<Handle<Source>>,
 }
 
-impl State for BeatmapLoadState {
-    fn on_start(&mut self, world: &mut World) {
+impl<'a,'b> State<GameData<'a,'b>> for BeatmapLoadState {
+    fn on_start(&mut self, data: StateData<GameData<'a,'b>>) {
         if self.audio_handle.is_none() {
-            let beatmap = world
+            let beatmap = data.world
                 .res
                 .try_fetch::<BeatMap>()
                 .expect("Can't fetch beatmap from resources.")
                 .clone();
-            self.audio_handle = Some(world.read_resource::<Loader>().load(
+            self.audio_handle = Some(data.world.read_resource::<Loader>().load(
                 beatmap.songpath.clone(),
                 OggFormat,
                 (),
                 (),
-                &world.read_resource(),
+                &data.world.read_resource(),
             ));
         }
     }
-    fn update(&mut self, world: &mut World) -> Trans {
-        if world
+    fn update(&mut self, data: StateData<GameData<'a,'b>>) -> Trans<GameData<'a,'b>> {
+        if data.world
             .read_resource::<AssetStorage<Source>>()
             .get(&self.audio_handle.clone().unwrap())
             .is_some()
         {
             Trans::Switch(Box::new(GameState::new(
-                world,
+                data.world,
                 self.audio_handle.clone().unwrap(),
             )))
         } else {

@@ -1,7 +1,7 @@
 extern crate amethyst;
 extern crate itertools;
 
-use self::itertools::Itertools;
+//use self::itertools::Itertools;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
 use amethyst::renderer::{ImageError,Event,KeyboardInput, Material, MaterialDefaults, Mesh,
@@ -278,7 +278,7 @@ pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
 pub fn window_closed(event: &Event) -> bool{
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
-            &WindowEvent::Closed => true,
+            &WindowEvent::CloseRequested => true,
             _ => false,
         },
         _ => false,
