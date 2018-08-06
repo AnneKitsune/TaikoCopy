@@ -31,7 +31,7 @@ impl<'a> System<'a> for GameSystem {
         Write<'a, Time>,
         Read<'a, InputHandler<String, String>>,
         ReadExpect<'a, Sounds>,
-        Read<'a, Option<Output>>,
+        Option<Read<'a, Output>>,
         Read<'a, BeatMap>,
         Read<'a, Stopwatch>,
         Write<'a, EventChannel<InputEvent<String>>>,
@@ -113,20 +113,20 @@ impl<'a> System<'a> for GameSystem {
         if r1 || r2 || b1 || b2 {
             let (red, dual) = get_key_press_type(r1, r2, b1, b2);
 
-            if let Some(ref output) = *audio_output {
+            if let Some(output) = audio_output {
                 if red {
                     output.play_once(
                         audio
                             .get(&sounds.normal)
                             .expect("Failed to find normal hitsound"),
-                        0.03,
+                        1.0,
                     );
                 } else {
                     output.play_once(
                         audio
                             .get(&sounds.clap)
                             .expect("Failed to find clap hitsound"),
-                        0.03,
+                        1.0,
                     );
                 }
                 if dual {
@@ -134,9 +134,11 @@ impl<'a> System<'a> for GameSystem {
                         audio
                             .get(&sounds.finish)
                             .expect("Failed to find finish hitsound"),
-                        0.03,
+                        1.0,
                     );
                 }
+            }else{
+                error!("Failed to find audio `Output` from system.");
             }
 
             //Get clickable object

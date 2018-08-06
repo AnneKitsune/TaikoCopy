@@ -20,6 +20,7 @@ use amethyst::core::transform::TransformBundle;
 use amethyst::core::Time;
 use amethyst::input::InputBundle;
 use amethyst::prelude::*;
+use amethyst::audio::Source;
 use amethyst::utils::fps_counter::FPSCounterBundle;
 //use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
 //                        Stage};
@@ -100,7 +101,7 @@ fn main() -> amethyst::Result<()>{
         .expect("Failed to load input bindings")
         .with_bundle(TransformBundle::new())
         .expect("Failed to build transform bundle")
-        .with_bundle(AudioBundle::new(|music: &mut Time| None))
+        .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))
         .expect("Failed to build dj bundle")
         //.with_bundle(RenderBundle::new(pipe, Some(display_config)))
         //.expect("Failed to build render bundle")
@@ -108,6 +109,10 @@ fn main() -> amethyst::Result<()>{
     let resources_directory = format!("");
     Application::build(resources_directory, MenuState)?
         .with_resource(asset_loader)
+        .with_resource(AssetLoaderInternal::<Mesh>::new())
+        .with_resource(AssetLoaderInternal::<Texture>::new())
+        .with_resource(AssetLoaderInternal::<Source>::new())
+        .with_resource(Music{music: vec![].into_iter().cycle()})
         .build(game_data_builder)?
         .run();
     Ok(())
