@@ -14,19 +14,14 @@ extern crate amethyst_extra;
 extern crate core;
 
 use amethyst::audio::Source;
-use amethyst::audio::{AudioBundle, SourceHandle};
-use amethyst::core::frame_limiter::FrameRateLimitStrategy;
+use amethyst::audio::{AudioBundle};
 use amethyst::core::transform::TransformBundle;
-use amethyst::core::Time;
 use amethyst::input::InputBundle;
 use amethyst::prelude::*;
-use amethyst::utils::fps_counter::FPSCounterBundle;
-use std::time::Duration;
 //use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
 //                        Stage};
 use amethyst::renderer::*;
 use amethyst_extra::*;
-use std::env;
 
 mod components;
 mod resources;
@@ -34,7 +29,6 @@ mod states;
 mod systems;
 mod utils;
 
-use resources::*;
 use states::*;
 
 fn main() -> amethyst::Result<()> {

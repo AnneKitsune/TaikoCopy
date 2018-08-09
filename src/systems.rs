@@ -63,7 +63,7 @@ impl<'a> System<'a> for GameSystem {
             self.reader_id = Some(events.register_reader());
         }
 
-        if (self.start_time <= 0.0) {
+        if self.start_time <= 0.0 {
             self.start_time = time.absolute_time_seconds();
         }
 

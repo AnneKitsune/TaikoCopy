@@ -5,27 +5,19 @@ extern crate rayon;
 use std::sync::Arc;
 
 use amethyst::core::cgmath::{Matrix4, Vector3};
-use amethyst::core::Time;
-use amethyst::input::InputEvent;
-use amethyst::input::InputHandler;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
 use amethyst::audio::output::Output;
-use amethyst::audio::{AudioSink, OggFormat, Source, SourceHandle};
+use amethyst::audio::{AudioSink, OggFormat, Source};
 
 use amethyst::audio::WavFormat;
-use amethyst::core::cgmath::Deg;
 use amethyst::core::timing::Stopwatch;
 use amethyst::core::transform::{GlobalTransform, Transform};
 use amethyst::ecs::prelude::*;
 use amethyst::prelude::*;
-use amethyst::renderer::{
-    Camera, Event, Factory, KeyboardInput, Material, MeshHandle, PngFormat, Projection,
-    TextureMetadata, WindowEvent,
-};
-use amethyst::shrev::{EventChannel, ReaderId};
+use amethyst::renderer::*;
+use amethyst::shrev::EventChannel;
 use amethyst_extra::AssetLoader;
-use futures::Future;
 
 use rayon::ThreadPool;
 
@@ -317,7 +309,8 @@ impl<'a, 'b> State<GameData<'a, 'b>> for MenuState {
             println!("Found beatmap: {}", b.songpath);
         }
         data.world.add_resource(beatmaps.swap_remove(1)); //tephereth
-                                                          //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
+        
+        //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
 
         data.world.add_resource(EventChannel::<HitResult>::new());
     }

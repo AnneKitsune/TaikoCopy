@@ -2,15 +2,10 @@ extern crate amethyst;
 
 use amethyst::audio::SourceHandle;
 use amethyst::core::timing::Stopwatch;
-use amethyst::core::transform::Transform;
 use amethyst::ecs::prelude::*;
-use amethyst::renderer::{Material, MeshHandle};
+use amethyst::renderer::Material;
 
-use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::path::Path;
-
-use amethyst::prelude::*;
 
 use components::*;
 
@@ -71,27 +66,9 @@ impl Component for HitObjectQueue {
 pub struct HitOffsets {
     pub offsets: Vec<Option<f64>>,
 }
-impl HitOffsets {
-    pub fn new() -> HitOffsets {
-        HitOffsets {
-            offsets: Vec::new(),
-        }
-    }
-}
+
 impl Component for HitOffsets {
     type Storage = VecStorage<HitOffsets>;
-}
-
-pub struct SystemTracker {
-    pub game: bool,
-}
-impl SystemTracker {
-    pub fn new() -> SystemTracker {
-        SystemTracker { game: false }
-    }
-}
-impl Component for SystemTracker {
-    type Storage = VecStorage<SystemTracker>;
 }
 
 #[derive(Default)]
@@ -99,28 +76,3 @@ pub struct UserSettings {
     pub offset: f64,
 }
 
-pub struct Paths {
-    paths: HashMap<String, String>,
-}
-impl Component for Paths {
-    type Storage = VecStorage<Paths>;
-}
-impl Paths {
-    pub fn from_file(cfg_file: &str) -> Paths {
-        let path = Path::new(&cfg_file);
-        let mut paths: HashMap<String, String> = HashMap::load(path);
-        for (_, v) in paths.iter_mut() {
-            if v.starts_with("./") {
-                v.remove(0);
-                *v = format!("{}{}", env!("CARGO_MANIFEST_DIR"), v);
-            }
-        }
-        Paths { paths: paths }
-    }
-    pub fn paths(&self) -> &HashMap<String, String> {
-        &self.paths
-    }
-    pub fn path(&self, key: &str) -> Option<&String> {
-        self.paths.get(key)
-    }
-}

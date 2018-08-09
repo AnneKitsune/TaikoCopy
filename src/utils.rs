@@ -4,13 +4,10 @@ extern crate itertools;
 //use self::itertools::Itertools;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
-use amethyst::audio::Source;
-use amethyst::audio::WavFormat;
-use amethyst::input::InputEvent;
 use amethyst::prelude::*;
 use amethyst::renderer::{
-    Event, ImageError, KeyboardInput, Material, MaterialDefaults, Mesh, PngFormat, PosTex, Texture,
-    TextureData, TextureMetadata, WindowEvent,
+    Event, KeyboardInput, Material, MaterialDefaults, Mesh, PngFormat, PosTex, Texture,
+    TextureMetadata, WindowEvent,
 };
 use amethyst::winit::VirtualKeyCode;
 
@@ -58,10 +55,6 @@ pub fn check_hit(
 }
 
 pub fn beatmap_list(maps_folder: &String) -> Vec<BeatMap> {
-    //let paths = fs::read_dir(maps_folder).expect(&*format!("Failed to read map folder @ {}",maps_folder));
-    /*for path in paths{
-        println!("Paths: {}",path.unwrap().path().display());
-    }*/
     list_directory(maps_folder)
         .into_iter()
         .map(|m| {
@@ -138,14 +131,14 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
                 4 => (true, true),   //big red
                 8 => (false, false), //small blue
                 12 => (false, true), //big blue
-                c => (false,false)//panic!("Unknown hitobject color type: {}", c),
+                _ => (false,false)// We don't know what this is, but it happens. Probably sliders.
             };
             hitobjects.push(HitObject {
                 red: red,
                 time: osu_to_real_time(
                     split[2 as usize]
                         .parse::<i32>()
-                        .expect("Failed to parse as u8"),
+                        .expect("Failed to parse hitobject time as i32."),
                 ),
                 big: big,
             });
@@ -189,6 +182,7 @@ pub fn material_from_png_simple(
         material_defaults,
     )
 }
+
 pub fn material_from_color(
     color: [f32; 4],
     loader: &Loader,
@@ -244,7 +238,7 @@ pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
     data
 }
 
-pub fn wav_from_file(
+/*pub fn wav_from_file(
     path: &str,
     loader: &Loader,
     storage: &AssetStorage<Source>,
@@ -256,7 +250,7 @@ pub fn wav_from_file(
         (),
         &storage,
     )
-}
+}*/
 
 pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool {
     match event {
