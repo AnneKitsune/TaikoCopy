@@ -1,19 +1,19 @@
 extern crate amethyst;
 
-use amethyst::audio::output::Output;
-use amethyst::renderer::Camera;
-use amethyst::ecs::prelude::*;
-use amethyst::input::InputHandler;
-use amethyst::core::transform::Transform;
-use amethyst::core::timing::{Stopwatch, Time};
-use amethyst::input::InputEvent;
-use amethyst::winit::VirtualKeyCode;
-use amethyst::shrev::{EventChannel, ReaderId};
 use amethyst::assets::AssetStorage;
+use amethyst::audio::output::Output;
 use amethyst::audio::Source;
+use amethyst::core::timing::{Stopwatch, Time};
+use amethyst::core::transform::Transform;
+use amethyst::ecs::prelude::*;
+use amethyst::input::InputEvent;
+use amethyst::input::InputHandler;
+use amethyst::renderer::Camera;
+use amethyst::shrev::{EventChannel, ReaderId};
+use amethyst::winit::VirtualKeyCode;
 
-use resources::*;
 use components::*;
+use resources::*;
 use utils::*;
 
 pub struct GameSystem {
@@ -89,7 +89,6 @@ impl<'a> System<'a> for GameSystem {
             }
         }
 
-
         if offset_up {
             user_settings.offset = user_settings.offset + 0.005;
             println!("Offset: {} ms", user_settings.offset * 1000.0);
@@ -137,7 +136,7 @@ impl<'a> System<'a> for GameSystem {
                         1.0,
                     );
                 }
-            }else{
+            } else {
                 error!("Failed to find audio `Output` from system.");
             }
 

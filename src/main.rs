@@ -10,34 +10,34 @@ extern crate time;
 extern crate winit;
 #[macro_use]
 extern crate log;
-extern crate core;
 extern crate amethyst_extra;
+extern crate core;
 
-use std::time::Duration;
+use amethyst::audio::Source;
 use amethyst::audio::{AudioBundle, SourceHandle};
 use amethyst::core::frame_limiter::FrameRateLimitStrategy;
 use amethyst::core::transform::TransformBundle;
 use amethyst::core::Time;
 use amethyst::input::InputBundle;
 use amethyst::prelude::*;
-use amethyst::audio::Source;
 use amethyst::utils::fps_counter::FPSCounterBundle;
+use std::time::Duration;
 //use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
 //                        Stage};
 use amethyst::renderer::*;
 use amethyst_extra::*;
 use std::env;
 
-mod systems;
-mod states;
-mod resources;
 mod components;
+mod resources;
+mod states;
+mod systems;
 mod utils;
 
-use states::*;
 use resources::*;
+use states::*;
 
-fn main() -> amethyst::Result<()>{
+fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
     // run_dir() -> String
     /*let bin_path = env::args().next().expect("Failed to get binary executable path");
@@ -48,14 +48,9 @@ fn main() -> amethyst::Result<()>{
         base_path = String::from(".");
     }*/
     let base_path = get_working_dir();
-    let asset_loader = AssetLoader::new(
-        &format!("{}/assets", base_path).to_string(),
-        "base",
-    );
+    let asset_loader = AssetLoader::new(&format!("{}/assets", base_path).to_string(), "base");
     let display_config_path = asset_loader.resolve_path("config/display.ron").unwrap();
     let key_bindings_path = asset_loader.resolve_path("config/input.ron").unwrap();
-
-
 
     /*let path = format!("{}/resources/config.ron", env!("CARGO_MANIFEST_DIR"));
     let display_config = DisplayConfig::load(path);
@@ -93,9 +88,6 @@ fn main() -> amethyst::Result<()>{
         .expect("Failed to load render bundle");
     game.build().expect("Failed to build game").run();*/
 
-
-
-
     let game_data_builder = GameDataBuilder::default()
         .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?)
         .expect("Failed to load input bindings")
@@ -112,7 +104,9 @@ fn main() -> amethyst::Result<()>{
         .with_resource(AssetLoaderInternal::<Mesh>::new())
         .with_resource(AssetLoaderInternal::<Texture>::new())
         .with_resource(AssetLoaderInternal::<Source>::new())
-        .with_resource(Music{music: vec![].into_iter().cycle()})
+        .with_resource(Music {
+            music: vec![].into_iter().cycle(),
+        })
         .build(game_data_builder)?
         .run();
     Ok(())

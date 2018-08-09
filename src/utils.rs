@@ -4,22 +4,23 @@ extern crate itertools;
 //use self::itertools::Itertools;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
-use amethyst::renderer::{ImageError,Event,KeyboardInput, Material, MaterialDefaults, Mesh,
-                         PngFormat, PosTex, Texture, TextureData, TextureMetadata,WindowEvent};
-use amethyst::audio::WavFormat;
 use amethyst::audio::Source;
+use amethyst::audio::WavFormat;
 use amethyst::input::InputEvent;
 use amethyst::prelude::*;
+use amethyst::renderer::{
+    Event, ImageError, KeyboardInput, Material, MaterialDefaults, Mesh, PngFormat, PosTex, Texture,
+    TextureData, TextureMetadata, WindowEvent,
+};
 use amethyst::winit::VirtualKeyCode;
 
+use std::fs;
+use std::fs::File;
 use std::io::Read;
 use std::ops::{Add, Sub};
-use std::fs::File;
-use std::fs;
 
-
-use resources::*;
 use components::*;
+use resources::*;
 
 pub fn get_key_press_type(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) {
     let dual = (z && x) || (two && three);
@@ -106,7 +107,7 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
     for line in content.lines() {
         if line == "[HitObjects]" {
             mode = "HitObjects";
-        }else if line == "[General]"{
+        } else if line == "[General]" {
             mode = "General";
         }
         if mode == "General" {
@@ -160,7 +161,6 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
 pub fn osu_to_real_time(time: i32) -> f64 {
     time as f64 / 1000.0
 }
-
 
 pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
     number: B,
@@ -258,15 +258,15 @@ pub fn wav_from_file(
     )
 }
 
-pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
+pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool {
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
             &WindowEvent::KeyboardInput {
                 input:
-                KeyboardInput {
-                    virtual_keycode: Some(k),
-                    ..
-                },
+                    KeyboardInput {
+                        virtual_keycode: Some(k),
+                        ..
+                    },
                 ..
             } => k == key,
             _ => false,
@@ -275,7 +275,7 @@ pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
     }
 }
 
-pub fn window_closed(event: &Event) -> bool{
+pub fn window_closed(event: &Event) -> bool {
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
             &WindowEvent::CloseRequested => true,

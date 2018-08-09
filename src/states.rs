@@ -4,26 +4,28 @@ extern crate rayon;
 
 use std::sync::Arc;
 
-use amethyst::core::Time;
 use amethyst::core::cgmath::{Matrix4, Vector3};
-use amethyst::input::InputHandler;
+use amethyst::core::Time;
 use amethyst::input::InputEvent;
+use amethyst::input::InputHandler;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
-use amethyst::audio::{AudioSink, OggFormat, Source, SourceHandle};
 use amethyst::audio::output::Output;
+use amethyst::audio::{AudioSink, OggFormat, Source, SourceHandle};
 
-use amethyst::renderer::{Camera, Event, Factory, KeyboardInput, Material, MeshHandle, PngFormat,
-                         Projection, TextureMetadata, WindowEvent};
-use amethyst::core::transform::{GlobalTransform, Transform};
-use amethyst::prelude::*;
-use amethyst::core::timing::Stopwatch;
-use futures::Future;
-use amethyst::ecs::prelude::*;
-use amethyst::core::cgmath::Deg;
-use amethyst::shrev::{EventChannel, ReaderId};
 use amethyst::audio::WavFormat;
+use amethyst::core::cgmath::Deg;
+use amethyst::core::timing::Stopwatch;
+use amethyst::core::transform::{GlobalTransform, Transform};
+use amethyst::ecs::prelude::*;
+use amethyst::prelude::*;
+use amethyst::renderer::{
+    Camera, Event, Factory, KeyboardInput, Material, MeshHandle, PngFormat, Projection,
+    TextureMetadata, WindowEvent,
+};
+use amethyst::shrev::{EventChannel, ReaderId};
 use amethyst_extra::AssetLoader;
+use futures::Future;
 
 use rayon::ThreadPool;
 
@@ -31,8 +33,8 @@ use amethyst::winit::VirtualKeyCode;
 
 use amethyst::core::shred::*;
 
-use systems::*;
 use resources::*;
+use systems::*;
 use utils::*;
 
 pub struct GameState {
@@ -56,12 +58,48 @@ impl GameState {
     pub fn load_sounds(world: &World) -> Sounds {
         //let loader = world.read_resource::<Loader>();
         let asset_loader = world.read_resource::<AssetLoader>();
-        
+
         // Unwrap because we know the path is right.
-        let hitsound_normal = asset_loader.load("audio/taiko-normal-hitnormal.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
-        let hitsound_clap = asset_loader.load("audio/taiko-normal-hitclap.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
-        let hitsound_finish = asset_loader.load("audio/taiko-normal-hitfinish.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
-        let hitsound_whistle = asset_loader.load("audio/taiko-normal-hitwhistle.wav",WavFormat,(),&mut world.write_resource(),&mut world.write_resource(),&world.read_resource()).unwrap();
+        let hitsound_normal = asset_loader
+            .load(
+                "audio/taiko-normal-hitnormal.wav",
+                WavFormat,
+                (),
+                &mut world.write_resource(),
+                &mut world.write_resource(),
+                &world.read_resource(),
+            )
+            .unwrap();
+        let hitsound_clap = asset_loader
+            .load(
+                "audio/taiko-normal-hitclap.wav",
+                WavFormat,
+                (),
+                &mut world.write_resource(),
+                &mut world.write_resource(),
+                &world.read_resource(),
+            )
+            .unwrap();
+        let hitsound_finish = asset_loader
+            .load(
+                "audio/taiko-normal-hitfinish.wav",
+                WavFormat,
+                (),
+                &mut world.write_resource(),
+                &mut world.write_resource(),
+                &world.read_resource(),
+            )
+            .unwrap();
+        let hitsound_whistle = asset_loader
+            .load(
+                "audio/taiko-normal-hitwhistle.wav",
+                WavFormat,
+                (),
+                &mut world.write_resource(),
+                &mut world.write_resource(),
+                &world.read_resource(),
+            )
+            .unwrap();
         Sounds {
             normal: hitsound_normal,
             clap: hitsound_clap,
@@ -73,7 +111,6 @@ impl GameState {
         hit_results_path: String,
         world: &World,
     ) -> (Material, Material, Material) {
-        
         let loader = world.read_resource::<Loader>();
         (
             material_from_png_simple(
@@ -98,8 +135,8 @@ impl GameState {
     }
 }
 
-impl<'a,'b> State<GameData<'a,'b>> for GameState {
-    fn on_start(&mut self, data: StateData<GameData<'a,'b>>) {
+impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
+    fn on_start(&mut self, data: StateData<GameData<'a, 'b>>) {
         self.dispatch.setup(&mut data.world.res);
 
         let beatmap = data.world
@@ -164,7 +201,6 @@ impl<'a,'b> State<GameData<'a,'b>> for GameState {
             &data.world.read_resource(),
         );
 
-
         /*data.world.add_resource(HitResultTextures {
             miss,
             good,
@@ -178,7 +214,7 @@ impl<'a,'b> State<GameData<'a,'b>> for GameState {
             sink.set_volume(0.5);
             let m = data.world.read_resource::<AssetStorage<Source>>();
             output.play_once(m.get(&self.audio_handle).expect("Can't find music"), 1.0);
-        }else{
+        } else {
             error!("Failed to find audio `Output`.");
         }
 
@@ -190,7 +226,7 @@ impl<'a,'b> State<GameData<'a,'b>> for GameState {
 
         data.world
             .create_entity()
-            .with(Camera::from(Projection::orthographic(0.0,1.0,1.0,0.0)))
+            .with(Camera::from(Projection::orthographic(0.0, 1.0, 1.0, 0.0)))
             .with(GlobalTransform(
                 Matrix4::from_translation(Vector3::new(0.0, 0.0, 1.0)).into(),
             ))
@@ -223,7 +259,6 @@ impl<'a,'b> State<GameData<'a,'b>> for GameState {
         }
         data.world.add_resource(hitqueue);
 
-
         //add hit judgement On Time
         // 0.5 screen/sec, 25 ms = 0.0125 screens
 
@@ -252,13 +287,17 @@ impl<'a,'b> State<GameData<'a,'b>> for GameState {
             .build();
     }
 
-    fn update(&mut self, mut data: StateData<GameData<'a,'b>>) -> Trans<GameData<'a,'b>> {
+    fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
         data.data.update(&mut data.world);
         self.dispatch.dispatch(&mut data.world.res);
         Trans::None
     }
-    fn handle_event(&mut self, _: StateData<GameData<'a,'b>>, event: Event) -> Trans<GameData<'a,'b>> {
-        if key_pressed_from_event(VirtualKeyCode::Escape,&event) || window_closed(&event){
+    fn handle_event(
+        &mut self,
+        _: StateData<GameData<'a, 'b>>,
+        event: Event,
+    ) -> Trans<GameData<'a, 'b>> {
+        if key_pressed_from_event(VirtualKeyCode::Escape, &event) || window_closed(&event) {
             return Trans::Quit;
         }
         Trans::None
@@ -267,29 +306,36 @@ impl<'a,'b> State<GameData<'a,'b>> for GameState {
 
 pub struct MenuState;
 
-impl<'a,'b> State<GameData<'a,'b>> for MenuState {
-    fn on_start(&mut self, data: StateData<GameData<'a,'b>>) {
-        let map_folder = &data.world.read_resource::<AssetLoader>().resolve_path("maps").expect("Failed to find maps folder");
+impl<'a, 'b> State<GameData<'a, 'b>> for MenuState {
+    fn on_start(&mut self, data: StateData<GameData<'a, 'b>>) {
+        let map_folder = &data.world
+            .read_resource::<AssetLoader>()
+            .resolve_path("maps")
+            .expect("Failed to find maps folder");
         let mut beatmaps = beatmap_list(&map_folder);
         for b in &beatmaps {
             println!("Found beatmap: {}", b.songpath);
         }
         data.world.add_resource(beatmaps.swap_remove(1)); //tephereth
-        //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
+                                                          //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
 
         data.world.add_resource(EventChannel::<HitResult>::new());
     }
-    fn handle_event(&mut self, _: StateData<GameData<'a,'b>>, event: Event) -> Trans<GameData<'a,'b>> {
-        if key_pressed_from_event(VirtualKeyCode::Space,&event){
+    fn handle_event(
+        &mut self,
+        _: StateData<GameData<'a, 'b>>,
+        event: Event,
+    ) -> Trans<GameData<'a, 'b>> {
+        if key_pressed_from_event(VirtualKeyCode::Space, &event) {
             println!("Starting my dude");
             return Trans::Switch(Box::new(BeatmapLoadState { audio_handle: None }));
         }
-        if window_closed(&event){
+        if window_closed(&event) {
             return Trans::Quit;
         }
         Trans::None
     }
-    fn update(&mut self, mut data: StateData<GameData<'a,'b>>) -> Trans<GameData<'a,'b>> {
+    fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
         data.data.update(&mut data.world);
         Trans::None
     }
@@ -299,8 +345,8 @@ pub struct BeatmapLoadState {
     audio_handle: Option<Handle<Source>>,
 }
 
-impl<'a,'b> State<GameData<'a,'b>> for BeatmapLoadState {
-    fn on_start(&mut self, data: StateData<GameData<'a,'b>>) {
+impl<'a, 'b> State<GameData<'a, 'b>> for BeatmapLoadState {
+    fn on_start(&mut self, data: StateData<GameData<'a, 'b>>) {
         if self.audio_handle.is_none() {
             let beatmap = data.world
                 .res
@@ -320,7 +366,7 @@ impl<'a,'b> State<GameData<'a,'b>> for BeatmapLoadState {
             ));
         }
     }
-    fn update(&mut self, mut data: StateData<GameData<'a,'b>>) -> Trans<GameData<'a,'b>> {
+    fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
         data.data.update(&mut data.world);
         if data.world
             .read_resource::<AssetStorage<Source>>()

@@ -1,13 +1,13 @@
 extern crate amethyst;
 
 use amethyst::audio::SourceHandle;
+use amethyst::core::timing::Stopwatch;
+use amethyst::core::transform::Transform;
 use amethyst::ecs::prelude::*;
 use amethyst::renderer::{Material, MeshHandle};
-use amethyst::core::transform::Transform;
-use amethyst::core::timing::Stopwatch;
 
-use std::collections::VecDeque;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::path::Path;
 
 use amethyst::prelude::*;

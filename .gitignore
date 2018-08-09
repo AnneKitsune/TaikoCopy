@@ -1,3 +1,5 @@
 /target/
 **/*.rs.bk
 .idea/
+taiko-copy-export.zip
+/export/
