@@ -43,7 +43,7 @@ dependencies = [
 [[package]]
 name = "amethyst-extra"
 version = "0.3.0"
-source = "git+https://github.com/jojolepro/amethyst-extra#77acd8920f7b68494bddd538ac9946cb0e584d78"
+source = "git+https://github.com/jojolepro/amethyst-extra#890ffa117251bab47d5c80c83904c56fde5166be"
 dependencies = [
  "amethyst 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossterm 0.3.0 (git+https://github.com/TimonPost/crossterm?branch=input)",

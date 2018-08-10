@@ -4,20 +4,19 @@ extern crate rayon;
 
 use std::sync::Arc;
 
-use amethyst::core::cgmath::{Matrix4, Vector3};
-
 use amethyst::assets::{AssetStorage, Handle, Loader};
 use amethyst::audio::output::Output;
-use amethyst::audio::{AudioSink, OggFormat, Source};
-
 use amethyst::audio::WavFormat;
+use amethyst::audio::{AudioSink, OggFormat, Source};
+use amethyst::core::cgmath::{Matrix4, Vector3};
 use amethyst::core::timing::Stopwatch;
 use amethyst::core::transform::{GlobalTransform, Transform};
 use amethyst::ecs::prelude::*;
 use amethyst::prelude::*;
 use amethyst::renderer::*;
 use amethyst::shrev::EventChannel;
-use amethyst_extra::AssetLoader;
+use amethyst::ui::*;
+use amethyst_extra::*;
 
 use rayon::ThreadPool;
 
@@ -148,13 +147,6 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
 
         //let (miss, good, perfect) = GameState::load_hit_results(hit_results_path, &data.world);
 
-        let mesh = gen_rectangle_mesh(
-            0.05,
-            0.05,
-            &data.world.read_resource::<Loader>(),
-            &data.world.read_resource(),
-        );
-
         let big_hit_mesh = gen_rectangle_mesh(
             0.01,
             0.25,
@@ -216,6 +208,7 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
         stopwatch.stopwatch.start();
         data.world.add_resource(stopwatch);
 
+        // TODO: Remove this. It needs to be created only once.
         data.world
             .create_entity()
             .with(Camera::from(Projection::orthographic(0.0, 1.0, 1.0, 0.0)))
@@ -247,6 +240,7 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
                 .with(hit.clone())
                 .with(tr)
                 .with(GlobalTransform::default())
+                .with(Removal::new(RemovalLayer::Gameplay))
                 .build();
         }
         data.world.add_resource(hitqueue);
@@ -276,9 +270,14 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
             .with(hit_judgement_mtl.clone())
             .with(tr)
             .with(GlobalTransform::default())
+            .with(Removal::new(RemovalLayer::Gameplay))
             .build();
     }
-
+    
+    fn on_stop(&mut self, mut data: StateData<GameData>) {
+        exec_removal(&data.world.read_resource(), &data.world.read_storage(), RemovalLayer::Gameplay);
+    }
+    
     fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
         data.data.update(&mut data.world);
         self.dispatch.dispatch(&mut data.world.res);
@@ -289,47 +288,136 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
         _: StateData<GameData<'a, 'b>>,
         event: Event,
     ) -> Trans<GameData<'a, 'b>> {
-        if key_pressed_from_event(VirtualKeyCode::Escape, &event) || window_closed(&event) {
+        if key_pressed_from_event(VirtualKeyCode::Escape, &event) {
+            return Trans::Pop;
+        } else if window_closed(&event) {
             return Trans::Quit;
         }
         Trans::None
     }
 }
 
-pub struct MenuState;
+pub struct MenuState {
+    ui_events: Option<ReaderId<UiEvent>>,
+    all_maps: Vec<BeatMap>,
+    button_entities: Vec<Entity>,
+}
+
+impl MenuState {
+    pub fn new() -> Self {
+        MenuState {
+            ui_events: None,
+            all_maps: vec![],
+            button_entities: vec![],
+        }
+    }
+}
 
 impl<'a, 'b> State<GameData<'a, 'b>> for MenuState {
-    fn on_start(&mut self, data: StateData<GameData<'a, 'b>>) {
+    fn on_start(&mut self, mut data: StateData<GameData<'a, 'b>>) {
+        data.world.register::<Removal<RemovalLayer>>();
         let map_folder = &data.world
             .read_resource::<AssetLoader>()
             .resolve_path("maps")
             .expect("Failed to find maps folder");
-        let mut beatmaps = beatmap_list(&map_folder);
-        for b in &beatmaps {
-            println!("Found beatmap: {}", b.songpath);
-        }
-        data.world.add_resource(beatmaps.swap_remove(1)); //tephereth
+        let beatmaps = beatmap_list(&map_folder);
+        self.ui_events = Some(
+            data.world
+                .write_resource::<EventChannel<UiEvent>>()
+                .register_reader(),
+        );
+
+        // Now we have our map list. Create the selection buttons.
+        let font = data.world.read_resource::<AssetLoader>().load(
+            "fonts/Arial.ttf",
+            TtfFormat,
+            (),
+            &mut data.world.write_resource(),
+            &mut data.world.write_resource(),
+            &data.world.read_resource(),
+        );
         
+        self.button_entities.clear();
+        if let Some(font) = font {
+            for (i, b) in beatmaps.iter().enumerate() {
+                println!("Found beatmap: {}", b.songpath);
+                /*world.create_entity()
+                .with(UiTransform::new("song_select",Anchor::TopMiddle, 0.0, -80.0 * (i as f32 + 1.0), 0.0, 1000.0, 80.0, i))
+                .with(UiText::new(font,""))
+                .build();*/
+                let entity = UiButtonBuilder::new(b.songpath.clone(), b.name.clone())
+                    .with_anchor(Anchor::TopMiddle)
+                    .with_position(0.0, 40.0 + 100.0 * (i as f32 + 1.0))
+                    .with_size(1000.0, 80.0)
+                    .with_font_size(25.0)
+                    .with_tab_order(i as i32)
+                    .with_font(font.clone())
+                    .with_text_color([0.0, 1.0, 0.0, 1.0])
+                    .build_from_world(&mut data.world);
+                self.button_entities.push(entity);
+            }
+        } else {
+            error!("Failed to load font for song_select buttons. Skipping...");
+        }
+
+        self.all_maps = beatmaps;
+        //data.world.add_resource(beatmaps.swap_remove(1)); //tephereth
+
         //world.add_resource(beatmaps.swap_remove(3));//Unpleasant Sonata
 
-        data.world.add_resource(EventChannel::<HitResult>::new());
+        //data.world.add_resource(EventChannel::<HitResult>::new());
     }
+    
+    fn on_resume(&mut self, mut data: StateData<GameData>) {
+        self.on_start(data);
+    }
+    
     fn handle_event(
         &mut self,
         _: StateData<GameData<'a, 'b>>,
         event: Event,
     ) -> Trans<GameData<'a, 'b>> {
-        if key_pressed_from_event(VirtualKeyCode::Space, &event) {
+        /*if key_pressed_from_event(VirtualKeyCode::Space, &event) {
             println!("Starting my dude");
-            return Trans::Switch(Box::new(BeatmapLoadState { audio_handle: None }));
+            return Trans::Push(Box::new(BeatmapLoadState { audio_handle: None }));
         }
         if window_closed(&event) {
             return Trans::Quit;
-        }
+        }*/
         Trans::None
     }
     fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
         data.data.update(&mut data.world);
+        let mut found_map = None;
+        for ev in data.world
+            .read_resource::<EventChannel<UiEvent>>()
+            .read(&mut self.ui_events.as_mut().unwrap())
+        {
+            match ev.event_type {
+                UiEventType::Click => {
+                    let songpath = data.world
+                        .read_storage::<UiTransform>()
+                        .get(ev.target)
+                        .unwrap()
+                        .id
+                        .clone();
+                    if let Some(map) = self.all_maps.iter().find(|m| m.songpath == *songpath) {
+                        found_map = Some(map.clone());
+                    } else {
+                        error!("Could not find selected map {} when clicking the select button. Was it removed?",songpath);
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let Some(map) = found_map {
+            data.world.add_resource(map);
+            data.world
+                .delete_entities(&self.button_entities)
+                .expect("Failed to cleanup MenuState buttons");
+            return Trans::Push(Box::new(BeatmapLoadState { audio_handle: None }));
+        }
+
         Trans::None
     }
 }

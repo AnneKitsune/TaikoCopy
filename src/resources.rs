@@ -43,6 +43,12 @@ pub enum HitResult {
     Miss,
 }
 
+impl Default for HitResult {
+    fn default() -> Self {
+        HitResult::Miss
+    }
+}
+
 impl Component for BeatMap {
     type Storage = VecStorage<BeatMap>;
 }
@@ -75,4 +81,3 @@ impl Component for HitOffsets {
 pub struct UserSettings {
     pub offset: f64,
 }
-

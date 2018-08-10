@@ -4,7 +4,6 @@ extern crate itertools;
 //use self::itertools::Itertools;
 
 use amethyst::assets::{AssetStorage, Handle, Loader};
-use amethyst::prelude::*;
 use amethyst::renderer::{
     Event, KeyboardInput, Material, MaterialDefaults, Mesh, PngFormat, PosTex, Texture,
     TextureMetadata, WindowEvent,
@@ -18,6 +17,13 @@ use std::ops::{Add, Sub};
 
 use components::*;
 use resources::*;
+
+#[derive(PartialEq)]
+pub enum RemovalLayer {
+    SongSelect,
+    Gameplay,
+}
+
 
 pub fn get_key_press_type(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) {
     let dual = (z && x) || (two && three);
@@ -131,7 +137,7 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
                 4 => (true, true),   //big red
                 8 => (false, false), //small blue
                 12 => (false, true), //big blue
-                _ => (false,false)// We don't know what this is, but it happens. Probably sliders.
+                _ => (false, false), // We don't know what this is, but it happens. Probably sliders.
             };
             hitobjects.push(HitObject {
                 red: red,
@@ -145,7 +151,7 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
         }
     }
     Some(BeatMap {
-        name: String::from("Test beatmap"),
+        name: String::from(songpath),
         songpath: format!("{}/{}", folder, songpath),
         objects: hitobjects,
         maxhitoffset: 0.05,
@@ -199,15 +205,15 @@ pub fn material_from_texture(texture: Handle<Texture>, defaults: &MaterialDefaul
         ..defaults.0.clone()
     }
 }
-pub fn gen_rectangle_mesh(
+/*pub fn gen_rectangle_mesh(
     w: f32,
     h: f32,
     loader: &Loader,
     storage: &AssetStorage<Mesh>,
 ) -> Handle<Mesh> {
-    let mut verts = gen_rectangle_vertices(w, h);
+    let verts = gen_rectangle_vertices(w, h);
     loader.load_from_data(verts.into(), (), &storage)
-}
+}*/
 pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
     let data: Vec<PosTex> = vec![
         PosTex {

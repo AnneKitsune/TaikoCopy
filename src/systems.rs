@@ -3,12 +3,11 @@ extern crate amethyst;
 use amethyst::assets::AssetStorage;
 use amethyst::audio::output::Output;
 use amethyst::audio::Source;
-use amethyst::core::timing::{Stopwatch, Time};
+use amethyst::core::timing::Time;
 use amethyst::core::transform::Transform;
 use amethyst::ecs::prelude::*;
 use amethyst::input::InputEvent;
 use amethyst::input::InputHandler;
-use amethyst::renderer::Camera;
 use amethyst::shrev::{EventChannel, ReaderId};
 use amethyst::winit::VirtualKeyCode;
 
@@ -26,14 +25,12 @@ impl<'a> System<'a> for GameSystem {
         Entities<'a>,
         WriteStorage<'a, HitObject>,
         WriteStorage<'a, Transform>,
-        ReadStorage<'a, Camera>,
         Read<'a, AssetStorage<Source>>,
-        Write<'a, Time>,
+        Read<'a, Time>,
         Read<'a, InputHandler<String, String>>,
         ReadExpect<'a, Sounds>,
         Option<Read<'a, Output>>,
         Read<'a, BeatMap>,
-        Read<'a, Stopwatch>,
         Write<'a, EventChannel<InputEvent<String>>>,
         Write<'a, HitObjectQueue>,
         Write<'a, HitOffsets>,
@@ -45,14 +42,12 @@ impl<'a> System<'a> for GameSystem {
             entities,
             mut hitobjects,
             mut transforms,
-            cam,
             audio,
-            mut time,
-            input,
+            time,
+            _input,
             sounds,
             audio_output,
             beatmap,
-            stopwatch,
             mut events,
             mut hitqueue,
             mut hitoffsets,
@@ -163,7 +158,12 @@ impl<'a> System<'a> for GameSystem {
                 if *dropped_offset == obj.time {
                     //Drop visual object
                     //println!("Dropped entity");
-                    entities.delete(entity);
+                    match entities.delete(entity) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            error!("Failed to delete entity {:?} because {:?}", entity, err)
+                        }
+                    }
                     //continue 'outer;
                 }
             }

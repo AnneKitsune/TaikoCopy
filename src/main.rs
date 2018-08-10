@@ -13,14 +13,15 @@ extern crate log;
 extern crate amethyst_extra;
 extern crate core;
 
+use amethyst::audio::AudioBundle;
 use amethyst::audio::Source;
-use amethyst::audio::{AudioBundle};
 use amethyst::core::transform::TransformBundle;
 use amethyst::input::InputBundle;
 use amethyst::prelude::*;
 //use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
 //                        Stage};
 use amethyst::renderer::*;
+use amethyst::ui::{FontAsset, UiBundle};
 use amethyst_extra::*;
 
 mod components;
@@ -83,21 +84,21 @@ fn main() -> amethyst::Result<()> {
     game.build().expect("Failed to build game").run();*/
 
     let game_data_builder = GameDataBuilder::default()
-        .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?)
-        .expect("Failed to load input bindings")
-        .with_bundle(TransformBundle::new())
-        .expect("Failed to build transform bundle")
-        .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))
-        .expect("Failed to build dj bundle")
+        .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?)?
+        .with_bundle(TransformBundle::new())?
+        .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
+        .with_bundle(UiBundle::<String, String>::new())?
+        .with(NormalOrthoCameraSystem::default(), "normal_cam", &[])
         //.with_bundle(RenderBundle::new(pipe, Some(display_config)))
         //.expect("Failed to build render bundle")
         .with_basic_renderer(display_config_path, DrawFlat::<PosTex>::new().with_transparency(ColorMask::all(), ALPHA, None), true)?;
     let resources_directory = format!("");
-    Application::build(resources_directory, MenuState)?
+    Application::build(resources_directory, MenuState::new())?
         .with_resource(asset_loader)
         .with_resource(AssetLoaderInternal::<Mesh>::new())
         .with_resource(AssetLoaderInternal::<Texture>::new())
         .with_resource(AssetLoaderInternal::<Source>::new())
+        .with_resource(AssetLoaderInternal::<FontAsset>::new())
         .with_resource(Music {
             music: vec![].into_iter().cycle(),
         })
