@@ -3,12 +3,14 @@ extern crate itertools;
 
 //use self::itertools::Itertools;
 
-use amethyst::assets::{AssetStorage, Handle, Loader};
+use amethyst::assets::{AssetStorage, Handle, Loader,SimpleFormat};
 use amethyst::renderer::{
     Event, KeyboardInput, Material, MaterialDefaults, Mesh, PngFormat, PosTex, Texture,
     TextureMetadata, WindowEvent,
 };
 use amethyst::winit::VirtualKeyCode;
+use amethyst::Result;
+use amethyst_extra::*;
 
 use std::fs;
 use std::fs::File;
@@ -23,7 +25,6 @@ pub enum RemovalLayer {
     SongSelect,
     Gameplay,
 }
-
 
 pub fn get_key_press_type(z: bool, x: bool, two: bool, three: bool) -> (bool, bool) {
     let dual = (z && x) || (two && three);
@@ -93,6 +94,75 @@ pub fn list_directory(dir: &String) -> Vec<String> {
         .collect()
 }
 
+/*#[derive(Clone)]
+pub struct BeatMapFormat;
+
+impl SimpleFormat<BeatMap> for BeatMapFormat {
+    const NAME: &'static str = "osu";
+    type Options = ();
+    fn import(&self, bytes: Vec<u8>, _: ()) -> Result<BeatMap> {
+        let content = str::from_utf8(bytes.as_slice())?;
+        //
+        let mut hitobjects: Vec<HitObject> = vec![];
+    let mut mode = "";
+    let mut songpath = "";
+    for line in content.lines() {
+        if line == "[HitObjects]" {
+            mode = "HitObjects";
+        } else if line == "[General]" {
+            mode = "General";
+        }
+        if mode == "General" {
+            if line.starts_with("AudioFilename:") {
+                songpath = &line[15..];
+                if !songpath.ends_with(".ogg") {
+                    return None;
+                }
+            }
+            if line.starts_with("Mode:") {
+                // 1=taiko,3=mania
+                if &line[6..] != "1" {
+                    return None;
+                }
+            }
+        }
+        if mode == "HitObjects" {
+            let split: Vec<&str> = line.split(",").collect();
+
+            if split.len() != 6 {
+                continue;
+            }
+            let objecttype = split[4 as usize]
+                .parse::<u8>()
+                .expect("Failed to parse as u8");
+            let (red, big) = match objecttype {
+                0 => (true, false),  //small red
+                4 => (true, true),   //big red
+                8 => (false, false), //small blue
+                12 => (false, true), //big blue
+                _ => (false, false), // We don't know what this is, but it happens. Probably sliders.
+            };
+            hitobjects.push(HitObject {
+                red: red,
+                time: osu_to_real_time(
+                    split[2 as usize]
+                        .parse::<i32>()
+                        .expect("Failed to parse hitobject time as i32."),
+                ),
+                big: big,
+            });
+        }
+    }
+        //
+        Ok(BeatMap {
+            name: String::from(songpath),
+            songpath: format!("{}/{}", folder, songpath),
+            objects: hitobjects,
+            maxhitoffset: 0.05,
+        })
+    }
+}*/
+
 pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<BeatMap> {
     let folder = folder_path;
     let mut file = File::open(format!("{}", difficulty_path)).expect("Failed to open beatmap file");
@@ -157,130 +227,7 @@ pub fn read_beatmap(folder_path: &String, difficulty_path: &String) -> Option<Be
         maxhitoffset: 0.05,
     })
 }
+
 pub fn osu_to_real_time(time: i32) -> f64 {
     time as f64 / 1000.0
-}
-
-pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
-    number: B,
-    target: B,
-    margin: B,
-) -> bool {
-    number >= target - margin && number <= target + margin
-}
-
-///Possible optimisation VS usability loss: Taking &Loader in parameter
-pub fn texture_from_png_simple(
-    path: &str,
-    loader: &Loader,
-    storage: &AssetStorage<Texture>,
-) -> Handle<Texture> {
-    loader.load(path, PngFormat, TextureMetadata::default(), (), &storage)
-}
-pub fn material_from_png_simple(
-    path: &str,
-    loader: &Loader,
-    storage: &AssetStorage<Texture>,
-    material_defaults: &MaterialDefaults,
-) -> Material {
-    material_from_texture(
-        texture_from_png_simple(path, loader, storage),
-        material_defaults,
-    )
-}
-
-pub fn material_from_color(
-    color: [f32; 4],
-    loader: &Loader,
-    storage: &AssetStorage<Texture>,
-    material_defaults: &MaterialDefaults,
-) -> Material {
-    let albedo = loader.load_from_data(color.into(), (), &storage);
-    material_from_texture(albedo, material_defaults)
-}
-
-pub fn material_from_texture(texture: Handle<Texture>, defaults: &MaterialDefaults) -> Material {
-    Material {
-        albedo: texture,
-        ..defaults.0.clone()
-    }
-}
-/*pub fn gen_rectangle_mesh(
-    w: f32,
-    h: f32,
-    loader: &Loader,
-    storage: &AssetStorage<Mesh>,
-) -> Handle<Mesh> {
-    let verts = gen_rectangle_vertices(w, h);
-    loader.load_from_data(verts.into(), (), &storage)
-}*/
-pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
-    let data: Vec<PosTex> = vec![
-        PosTex {
-            position: [-w / 2., -h / 2., 0.],
-            tex_coord: [0., 0.],
-        },
-        PosTex {
-            position: [w / 2., -h / 2., 0.],
-            tex_coord: [1., 0.],
-        },
-        PosTex {
-            position: [w / 2., h / 2., 0.],
-            tex_coord: [1., 1.],
-        },
-        PosTex {
-            position: [w / 2., h / 2., 0.],
-            tex_coord: [1., 1.],
-        },
-        PosTex {
-            position: [-w / 2., h / 2., 0.],
-            tex_coord: [0., 1.],
-        },
-        PosTex {
-            position: [-w / 2., -h / 2., 0.],
-            tex_coord: [0., 0.],
-        },
-    ];
-    data
-}
-
-/*pub fn wav_from_file(
-    path: &str,
-    loader: &Loader,
-    storage: &AssetStorage<Source>,
-) -> Handle<Source> {
-    loader.load(
-        format!("{}/{}", env!("CARGO_MANIFEST_DIR"), path,),
-        WavFormat,
-        (),
-        (),
-        &storage,
-    )
-}*/
-
-pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool {
-    match event {
-        &Event::WindowEvent { ref event, .. } => match event {
-            &WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        virtual_keycode: Some(k),
-                        ..
-                    },
-                ..
-            } => k == key,
-            _ => false,
-        },
-        _ => false,
-    }
-}
-
-pub fn window_closed(event: &Event) -> bool {
-    match event {
-        &Event::WindowEvent { ref event, .. } => match event {
-            &WindowEvent::CloseRequested => true,
-            _ => false,
-        },
-        _ => false,
-    }
 }

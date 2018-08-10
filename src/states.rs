@@ -17,6 +17,7 @@ use amethyst::renderer::*;
 use amethyst::shrev::EventChannel;
 use amethyst::ui::*;
 use amethyst_extra::*;
+use amethyst::input::*;
 
 use rayon::ThreadPool;
 
@@ -104,19 +105,19 @@ impl GameState {
     ) -> (Material, Material, Material) {
         let loader = world.read_resource::<Loader>();
         (
-            material_from_png_simple(
+            material_from_png(
                 &format!("{}/taiko-hit0.png", hit_results_path),
                 &loader,
                 &world.read_resource(),
                 &world.read_resource(),
             ),
-            material_from_png_simple(
+            material_from_png(
                 &format!("{}/taiko-hit100.png", hit_results_path),
                 &loader,
                 &world.read_resource(),
                 &world.read_resource(),
             ),
-            material_from_png_simple(
+            material_from_png(
                 &format!("{}/taiko-hit300.png", hit_results_path),
                 &loader,
                 &world.read_resource(),
@@ -135,13 +136,6 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
             .try_fetch::<BeatMap>()
             .expect("Can't fetch beatmap from resources.")
             .clone();
-        /*let hit_results_path = data.world
-            .fetch::<AssetLoader>()
-            .resolve_path("hit_results")
-            .expect("Failed to find hit_results path")
-            .clone();*/
-
-        //let music:SourceHandle = world.read_resource::<Loader>().load(beatmap.songpath.clone(), OggFormat, (),(),&world.read_resource());
 
         let sounds = GameState::load_sounds(&data.world);
 
@@ -273,11 +267,15 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
             .with(Removal::new(RemovalLayer::Gameplay))
             .build();
     }
-    
+
     fn on_stop(&mut self, mut data: StateData<GameData>) {
-        exec_removal(&data.world.read_resource(), &data.world.read_storage(), RemovalLayer::Gameplay);
+        exec_removal(
+            &data.world.read_resource(),
+            &data.world.read_storage(),
+            RemovalLayer::Gameplay,
+        );
     }
-    
+
     fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
         data.data.update(&mut data.world);
         self.dispatch.dispatch(&mut data.world.res);
@@ -288,9 +286,9 @@ impl<'a, 'b> State<GameData<'a, 'b>> for GameState {
         _: StateData<GameData<'a, 'b>>,
         event: Event,
     ) -> Trans<GameData<'a, 'b>> {
-        if key_pressed_from_event(VirtualKeyCode::Escape, &event) {
+        if is_key_down(&event, VirtualKeyCode::Escape) {
             return Trans::Pop;
-        } else if window_closed(&event) {
+        } else if is_close_requested(&event) {
             return Trans::Quit;
         }
         Trans::None
@@ -336,7 +334,7 @@ impl<'a, 'b> State<GameData<'a, 'b>> for MenuState {
             &mut data.world.write_resource(),
             &data.world.read_resource(),
         );
-        
+
         self.button_entities.clear();
         if let Some(font) = font {
             for (i, b) in beatmaps.iter().enumerate() {
@@ -367,23 +365,19 @@ impl<'a, 'b> State<GameData<'a, 'b>> for MenuState {
 
         //data.world.add_resource(EventChannel::<HitResult>::new());
     }
-    
+
     fn on_resume(&mut self, mut data: StateData<GameData>) {
         self.on_start(data);
     }
-    
+
     fn handle_event(
         &mut self,
         _: StateData<GameData<'a, 'b>>,
         event: Event,
     ) -> Trans<GameData<'a, 'b>> {
-        /*if key_pressed_from_event(VirtualKeyCode::Space, &event) {
-            println!("Starting my dude");
-            return Trans::Push(Box::new(BeatmapLoadState { audio_handle: None }));
-        }
-        if window_closed(&event) {
+        if is_key_down(&event, VirtualKeyCode::Space) || is_close_requested(&event) {
             return Trans::Quit;
-        }*/
+        }
         Trans::None
     }
     fn update(&mut self, mut data: StateData<GameData<'a, 'b>>) -> Trans<GameData<'a, 'b>> {
@@ -434,9 +428,6 @@ impl<'a, 'b> State<GameData<'a, 'b>> for BeatmapLoadState {
                 .try_fetch::<BeatMap>()
                 .expect("Can't fetch beatmap from resources.")
                 .clone();
-
-            /*let music = data.world.read_resource::<AssetLoader>()
-                .load("")*/
 
             self.audio_handle = Some(data.world.read_resource::<Loader>().load(
                 beatmap.songpath.clone(),

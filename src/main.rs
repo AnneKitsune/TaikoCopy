@@ -18,8 +18,6 @@ use amethyst::audio::Source;
 use amethyst::core::transform::TransformBundle;
 use amethyst::input::InputBundle;
 use amethyst::prelude::*;
-//use amethyst::renderer::{DisplayConfig, DrawFlat, Pipeline, PosTex, RenderBundle,
-//                        Stage};
 use amethyst::renderer::*;
 use amethyst::ui::{FontAsset, UiBundle};
 use amethyst_extra::*;
@@ -34,54 +32,11 @@ use states::*;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
-    // run_dir() -> String
-    /*let bin_path = env::args().next().expect("Failed to get binary executable path");
-    let last_slash_index = bin_path.rfind("/").expect("Failed to get last slash in binary path.");
-    let mut base_path = bin_path[..last_slash_index].to_string();
-
-    if base_path.contains("target/"){
-        base_path = String::from(".");
-    }*/
+    
     let base_path = get_working_dir();
     let asset_loader = AssetLoader::new(&format!("{}/assets", base_path).to_string(), "base");
     let display_config_path = asset_loader.resolve_path("config/display.ron").unwrap();
     let key_bindings_path = asset_loader.resolve_path("config/input.ron").unwrap();
-
-    /*let path = format!("{}/resources/config.ron", env!("CARGO_MANIFEST_DIR"));
-    let display_config = DisplayConfig::load(path);
-
-    let paths = Paths::from_file(&format!("{}/paths.ron", env!("CARGO_MANIFEST_DIR")));
-    let input_path = paths
-        .path("input")
-        .expect("Failed to find input config path")
-        .clone();
-    println!("{}", input_path);*/
-
-    /*let pipe = Pipeline::build().with_stage(
-        Stage::with_backbuffer()
-            //.clear_target([255.0, 105.0, 180.0, 1.0], 1.0)
-            .clear_target([1.0, 0.5, 0.75, 1.0], 1.0)
-            .with_pass(DrawFlat::<PosTex>::new()),
-    );
-    //let maps_dir = format!("{}/resources/assets/maps/", env!("CARGO_MANIFEST_DIR"));
-    let game = Application::build("", MenuState)
-        .unwrap()
-        .with_frame_limit(
-            FrameRateLimitStrategy::SleepAndYield(Duration::from_millis(2)),
-            144,
-        )
-        .with_resource(paths)
-        .with_bundle(FPSCounterBundle::new(20))
-        .expect("Failed to create FPSCounterBundle")
-        .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(&input_path))
-        .expect("Failed to load input bindings")
-        .with_bundle(TransformBundle::new())
-        .expect("Failed to build transform bundle")
-        .with_bundle(AudioBundle::new(|music: &mut Time| None))
-        .expect("Failed to build dj bundle")
-        .with_bundle(RenderBundle::new(pipe, Some(display_config)))
-        .expect("Failed to load render bundle");
-    game.build().expect("Failed to build game").run();*/
 
     let game_data_builder = GameDataBuilder::default()
         .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?)?
@@ -89,8 +44,6 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
         .with_bundle(UiBundle::<String, String>::new())?
         .with(NormalOrthoCameraSystem::default(), "normal_cam", &[])
-        //.with_bundle(RenderBundle::new(pipe, Some(display_config)))
-        //.expect("Failed to build render bundle")
         .with_basic_renderer(display_config_path, DrawFlat::<PosTex>::new().with_transparency(ColorMask::all(), ALPHA, None), true)?;
     let resources_directory = format!("");
     Application::build(resources_directory, MenuState::new())?
