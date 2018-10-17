@@ -4,19 +4,15 @@ version = "0.1.0"
 authors = ["jojo <jojolepromain@gmail.com>"]
 
 [dependencies]
-#amethyst = { git = "https://github.com/amethyst/amethyst", branch="develop" }
 amethyst = { version = "0.8", features = ["nightly"] }
-futures = "*"
-rayon = "*"
+futures = "0.1.23"
+rayon = "1.0.2"
 rand = "0.3.16"
 time = "0.1"
 winit = "0.7"
-rusttype = "*"
-imagefmt = "*"
-#specs = "*"
-#shred = "*"
-walkdir = "1"
+log = "0.4.5"
+rusttype = "0.6.4"
+imagefmt = "4.0.0"
+walkdir = "1.0.7"
 itertools = "0.7.0"
-log = "*"
-#amethyst-extra = { path = "../amethyst-extra" }
-amethyst-extra = { git = "https://github.com/jojolepro/amethyst-extra" }
+amethyst-extra = { git = "https://github.com/jojolepro/amethyst-extra", rev = "57dc039ffa952727031e705d584fb383fb7b3988" }
